@@ -1,0 +1,42 @@
+{
+  "id": "./",
+  "name": "AnchorGrid",
+  "short_name": "AnchorGrid",
+  "description": "Arena privada de estrategia por turnos para 2 o 4 jugadores.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#B6DDFE",
+  "theme_color": "#B6DDFE",
+  "orientation": "any",
+  "categories": ["games", "entertainment", "strategy"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Abrir AnchorGrid",
+      "short_name": "Jugar",
+      "url": "./",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
