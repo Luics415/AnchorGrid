@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles/global.css';
 import './styles/v0.8.1-polish.css';
+import './styles/v0.8.2-game-atmospheres.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,0 +1,676 @@
+/* ============================================================
+   AnchorGrid v0.8.2 — IN-GAME ATMOSPHERES HOTFIX
+   This file intentionally targets the real match background.
+   Theme-selection cards are not the focus of these animations.
+   ============================================================ */
+
+/* The game atmosphere sits behind HUD + board, but clearly above the base page. */
+.game-shell {
+  isolation: isolate;
+}
+
+.game-shell > .theme-atmosphere.atmosphere-game {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  filter: none;
+  contain: paint;
+}
+
+.game-shell > .theme-atmosphere.atmosphere-game::after {
+  display: none;
+}
+
+.game-shell > .theme-atmosphere.atmosphere-game .theme-field,
+.game-shell > .theme-atmosphere.atmosphere-game i {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+.game-shell > .theme-atmosphere.atmosphere-game .theme-field {
+  inset: auto;
+  will-change: transform, opacity;
+}
+
+/* ------------------------------------------------------------
+   AURORA
+   Large pink/cyan clouds travel over large portions of the map,
+   changing size continuously instead of staying in one corner.
+   ------------------------------------------------------------ */
+
+.game-shell > .atmosphere-aurora.atmosphere-game {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(186,240,250,.22), transparent 34%),
+    radial-gradient(circle at 82% 76%, rgba(247,197,235,.18), transparent 36%);
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game .theme-field-a,
+.game-shell > .atmosphere-aurora.atmosphere-game .theme-field-b,
+.game-shell > .atmosphere-aurora.atmosphere-game .theme-field-c {
+  width: min(48vw, 720px);
+  aspect-ratio: 1.7;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: .24;
+  background: radial-gradient(ellipse, rgba(247,197,235,.76), rgba(208,105,184,.25) 46%, transparent 72%);
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game .theme-field-a {
+  left: -16vw;
+  top: 5vh;
+  animation: ag-aurora-field-a 31s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game .theme-field-b {
+  right: -13vw;
+  top: 34vh;
+  background: radial-gradient(ellipse, rgba(186,240,250,.70), rgba(247,197,235,.28) 48%, transparent 73%);
+  animation: ag-aurora-field-b 37s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game .theme-field-c {
+  left: 34vw;
+  bottom: -10vh;
+  width: min(38vw, 590px);
+  background: radial-gradient(ellipse, rgba(208,105,184,.42), rgba(247,197,235,.20) 52%, transparent 76%);
+  animation: ag-aurora-field-c 43s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game i {
+  width: clamp(170px, 25vw, 430px);
+  aspect-ratio: 1.9;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(247,197,235,.66),
+    rgba(208,105,184,.26) 42%,
+    transparent 72%
+  );
+  filter: blur(26px);
+  opacity: .16;
+  animation: ag-aurora-blob 28s ease-in-out infinite alternate;
+  animation-duration: inherit;
+  animation-delay: inherit;
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game i:nth-of-type(3n) {
+  background: radial-gradient(ellipse, rgba(186,240,250,.66), rgba(247,197,235,.24) 44%, transparent 72%);
+}
+
+.game-shell > .atmosphere-aurora.atmosphere-game i:nth-of-type(4n) {
+  width: clamp(230px, 34vw, 580px);
+}
+
+@keyframes ag-aurora-field-a {
+  from { transform: translate3d(0,0,0) scale(.78) rotate(-8deg); }
+  to   { transform: translate3d(70vw,18vh,0) scale(1.24) rotate(9deg); }
+}
+
+@keyframes ag-aurora-field-b {
+  from { transform: translate3d(0,0,0) scale(1.08) rotate(6deg); }
+  to   { transform: translate3d(-68vw,-26vh,0) scale(.72) rotate(-11deg); }
+}
+
+@keyframes ag-aurora-field-c {
+  from { transform: translate3d(-20vw,0,0) scale(.68); opacity: .16; }
+  to   { transform: translate3d(38vw,-42vh,0) scale(1.36); opacity: .30; }
+}
+
+@keyframes ag-aurora-blob {
+  0% {
+    transform: translate3d(calc(var(--fx-drift-x) * -1), calc(var(--fx-drift-y) * -.6), 0)
+      scale(calc(var(--fx-size) * .72)) rotate(var(--fx-rotation));
+    opacity: .07;
+  }
+  38% {
+    transform: translate3d(calc(var(--fx-drift-x) * .2), calc(var(--fx-drift-y) * -1), 0)
+      scale(calc(var(--fx-size) * 1.14)) rotate(0deg);
+    opacity: .19;
+  }
+  72% {
+    transform: translate3d(var(--fx-drift-x), calc(var(--fx-drift-y) * .35), 0)
+      scale(calc(var(--fx-size) * .88)) rotate(calc(var(--fx-rotation) * -1));
+    opacity: .13;
+  }
+  100% {
+    transform: translate3d(calc(var(--fx-drift-x) * 1.55), var(--fx-drift-y), 0)
+      scale(calc(var(--fx-size) * 1.28)) rotate(var(--fx-rotation));
+    opacity: .09;
+  }
+}
+
+/* ------------------------------------------------------------
+   BLOOM
+   Continuous petal rain. Negative delays + many petals prevent
+   the scene from having visible "empty" pauses.
+   ------------------------------------------------------------ */
+
+.game-shell > .atmosphere-bloom.atmosphere-game {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(247,197,235,.25), transparent 32%),
+    radial-gradient(circle at 86% 88%, rgba(208,105,184,.13), transparent 34%);
+}
+
+.game-shell > .atmosphere-bloom.atmosphere-game .theme-field-a {
+  width: 48vw;
+  height: 48vw;
+  left: -12vw;
+  bottom: -20vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(247,197,235,.18), transparent 68%);
+  animation: ag-bloom-breathe 20s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-bloom.atmosphere-game .theme-field-b {
+  width: 34vw;
+  height: 34vw;
+  right: -8vw;
+  top: 8vh;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(186,240,250,.18), transparent 68%);
+  animation: ag-bloom-breathe 27s ease-in-out -8s infinite alternate-reverse;
+}
+
+.game-shell > .atmosphere-bloom.atmosphere-game i {
+  top: -18vh !important;
+  width: 13px;
+  height: 22px;
+  border-radius: 82% 18% 72% 28%;
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(247,197,235,.94) 52%, rgba(208,105,184,.52));
+  box-shadow: 0 7px 16px rgba(208,105,184,.14);
+  opacity: 0;
+  animation: ag-bloom-petal 13s linear infinite;
+  animation-duration: inherit;
+  animation-delay: inherit;
+}
+
+.game-shell > .atmosphere-bloom.atmosphere-game i:nth-of-type(3n) {
+  width: 9px;
+  height: 16px;
+  background: linear-gradient(145deg, white, rgba(186,240,250,.76));
+}
+
+.game-shell > .atmosphere-bloom.atmosphere-game i:nth-of-type(5n) {
+  width: 17px;
+  height: 27px;
+}
+
+@keyframes ag-bloom-breathe {
+  from { transform: translate3d(-2vw, 2vh, 0) scale(.88); opacity: .45; }
+  to   { transform: translate3d(8vw, -5vh, 0) scale(1.14); opacity: .72; }
+}
+
+@keyframes ag-bloom-petal {
+  0% {
+    transform: translate3d(-3vw,-10vh,0) rotate(0deg) scale(var(--fx-size));
+    opacity: 0;
+  }
+  7% { opacity: .30; }
+  28% {
+    transform: translate3d(var(--fx-drift-x),34vh,0) rotate(125deg) scale(var(--fx-size));
+  }
+  58% {
+    transform: translate3d(calc(var(--fx-drift-x) * -.45),74vh,0) rotate(280deg) scale(var(--fx-size));
+    opacity: .24;
+  }
+  84% { opacity: .18; }
+  100% {
+    transform: translate3d(calc(var(--fx-drift-x) * .7),132vh,0) rotate(520deg) scale(var(--fx-size));
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------
+   CRYSTAL
+   Cold shards now visibly float. Two sweeping reflections pass
+   slowly across the whole board/background.
+   ------------------------------------------------------------ */
+
+.game-shell > .atmosphere-crystal.atmosphere-game {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(186,240,250,.30), transparent 36%),
+    radial-gradient(circle at 78% 72%, rgba(99,125,152,.15), transparent 42%);
+}
+
+.game-shell > .atmosphere-crystal.atmosphere-game .theme-field-a,
+.game-shell > .atmosphere-crystal.atmosphere-game .theme-field-b {
+  width: 18vw;
+  min-width: 180px;
+  height: 150vh;
+  top: -24vh;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.30), rgba(186,240,250,.12), transparent);
+  filter: blur(5px);
+}
+
+.game-shell > .atmosphere-crystal.atmosphere-game .theme-field-a {
+  left: -28vw;
+  animation: ag-crystal-sheen 25s ease-in-out infinite;
+}
+
+.game-shell > .atmosphere-crystal.atmosphere-game .theme-field-b {
+  left: -38vw;
+  opacity: .55;
+  animation: ag-crystal-sheen 31s ease-in-out -12s infinite;
+}
+
+.game-shell > .atmosphere-crystal.atmosphere-game .theme-field-c {
+  width: 60vw;
+  height: 35vh;
+  left: 20vw;
+  bottom: -12vh;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(186,240,250,.20), transparent 70%);
+  animation: ag-crystal-cold-glow 18s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-crystal.atmosphere-game i {
+  width: clamp(34px, 5vw, 82px);
+  height: clamp(72px, 11vw, 156px);
+  clip-path: polygon(50% 0, 94% 28%, 72% 100%, 18% 84%, 4% 34%);
+  background:
+    linear-gradient(150deg,
+      rgba(255,255,255,.72),
+      rgba(186,240,250,.34) 38%,
+      rgba(99,125,152,.16) 72%,
+      rgba(255,255,255,.50)
+    );
+  border: 1px solid rgba(255,255,255,.58);
+  filter: drop-shadow(0 15px 19px rgba(74,124,161,.14));
+  opacity: .16;
+  animation: ag-crystal-float 22s ease-in-out infinite alternate;
+  animation-duration: inherit;
+  animation-delay: inherit;
+}
+
+.game-shell > .atmosphere-crystal.atmosphere-game i:nth-of-type(2n) {
+  clip-path: polygon(50% 0, 84% 20%, 100% 74%, 52% 100%, 12% 77%, 3% 30%);
+}
+
+@keyframes ag-crystal-sheen {
+  0%, 12% { transform: translate3d(0,0,0) rotate(18deg); opacity: 0; }
+  28% { opacity: .60; }
+  58% { opacity: .24; }
+  82%,100% { transform: translate3d(150vw,0,0) rotate(18deg); opacity: 0; }
+}
+
+@keyframes ag-crystal-cold-glow {
+  from { transform: translate3d(-8vw, 1vh,0) scale(.86); opacity: .30; }
+  to   { transform: translate3d(8vw,-8vh,0) scale(1.16); opacity: .62; }
+}
+
+@keyframes ag-crystal-float {
+  0% {
+    transform: translate3d(calc(var(--fx-drift-x) * -.35), calc(var(--fx-drift-y) * .35), 0)
+      rotate(calc(var(--fx-rotation) * -.65)) scale(calc(var(--fx-size) * .82));
+    opacity: .09;
+    filter: drop-shadow(0 14px 18px rgba(74,124,161,.10)) brightness(.92);
+  }
+  48% {
+    transform: translate3d(calc(var(--fx-drift-x) * .35), calc(var(--fx-drift-y) * -1), 0)
+      rotate(2deg) scale(calc(var(--fx-size) * 1.10));
+    opacity: .23;
+    filter: drop-shadow(0 20px 25px rgba(186,240,250,.20)) brightness(1.18);
+  }
+  100% {
+    transform: translate3d(var(--fx-drift-x), var(--fx-drift-y), 0)
+      rotate(var(--fx-rotation)) scale(var(--fx-size));
+    opacity: .12;
+    filter: drop-shadow(0 16px 21px rgba(74,124,161,.13)) brightness(1.02);
+  }
+}
+
+/* ------------------------------------------------------------
+   STORMLIGHT
+   Long strips spend long periods dim, then slowly illuminate.
+   ------------------------------------------------------------ */
+
+.game-shell > .atmosphere-stormlight.atmosphere-game {
+  background:
+    radial-gradient(circle at 14% 20%, rgba(52,77,117,.24), transparent 38%),
+    radial-gradient(circle at 82% 76%, rgba(208,105,184,.12), transparent 42%);
+}
+
+.game-shell > .atmosphere-stormlight.atmosphere-game .theme-field-a,
+.game-shell > .atmosphere-stormlight.atmosphere-game .theme-field-b {
+  left: -20vw;
+  width: 140vw;
+  height: 12px;
+  border-radius: 999px;
+  transform: rotate(-12deg);
+  background: linear-gradient(90deg, transparent, rgba(186,240,250,.30), rgba(255,255,255,.52), rgba(208,105,184,.24), transparent);
+  filter: blur(3px);
+  opacity: .03;
+}
+
+.game-shell > .atmosphere-stormlight.atmosphere-game .theme-field-a {
+  top: 32vh;
+  animation: ag-storm-master 26s ease-in-out infinite;
+}
+
+.game-shell > .atmosphere-stormlight.atmosphere-game .theme-field-b {
+  top: 68vh;
+  transform: rotate(8deg);
+  animation: ag-storm-master 34s ease-in-out -15s infinite;
+}
+
+.game-shell > .atmosphere-stormlight.atmosphere-game .theme-field-c {
+  inset: 0;
+  background: linear-gradient(115deg, transparent 18%, rgba(186,240,250,.05) 42%, transparent 58%);
+  animation: ag-storm-soft-sweep 29s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-stormlight.atmosphere-game i {
+  left: -20vw !important;
+  width: clamp(340px, 62vw, 980px);
+  height: clamp(4px, .55vw, 9px);
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(186,240,250,.44), rgba(255,255,255,.82), rgba(208,105,184,.36), transparent);
+  box-shadow: 0 0 20px rgba(186,240,250,.24), 0 0 42px rgba(208,105,184,.08);
+  opacity: .015;
+  animation: ag-storm-bar 30s ease-in-out infinite;
+  animation-duration: inherit;
+  animation-delay: inherit;
+}
+
+.game-shell > .atmosphere-stormlight.atmosphere-game i:nth-of-type(2n) {
+  transform: rotate(10deg);
+}
+
+@keyframes ag-storm-master {
+  0%,20% { opacity: .01; }
+  30%,47% { opacity: .26; }
+  58%,72% { opacity: .025; }
+  80%,91% { opacity: .18; }
+  100% { opacity: .01; }
+}
+
+@keyframes ag-storm-soft-sweep {
+  from { transform: translate3d(-18vw,0,0); opacity:.18; }
+  to   { transform: translate3d(18vw,0,0); opacity:.48; }
+}
+
+@keyframes ag-storm-bar {
+  0%,18% {
+    transform: translate3d(-12vw,0,0) rotate(-13deg);
+    opacity: .01;
+  }
+  28%,46% {
+    transform: translate3d(8vw,0,0) rotate(-11deg);
+    opacity: .20;
+  }
+  55%,72% {
+    transform: translate3d(24vw,0,0) rotate(-8deg);
+    opacity: .02;
+  }
+  79%,91% {
+    transform: translate3d(42vw,0,0) rotate(-5deg);
+    opacity: .16;
+  }
+  100% {
+    transform: translate3d(68vw,0,0) rotate(-2deg);
+    opacity: .01;
+  }
+}
+
+/* ------------------------------------------------------------
+   NEBULA
+   A real star-dust field: many tiny clusters drift independently.
+   ------------------------------------------------------------ */
+
+.game-shell > .atmosphere-nebula.atmosphere-game {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(99,125,152,.24), transparent 40%),
+    radial-gradient(circle at 82% 78%, rgba(247,197,235,.18), transparent 42%);
+}
+
+.game-shell > .atmosphere-nebula.atmosphere-game .theme-field-a,
+.game-shell > .atmosphere-nebula.atmosphere-game .theme-field-b,
+.game-shell > .atmosphere-nebula.atmosphere-game .theme-field-c {
+  border-radius: 50%;
+  filter: blur(46px);
+}
+
+.game-shell > .atmosphere-nebula.atmosphere-game .theme-field-a {
+  width: 52vw;
+  height: 34vw;
+  left: -10vw;
+  top: 8vh;
+  background: radial-gradient(ellipse, rgba(99,125,152,.26), transparent 70%);
+  animation: ag-nebula-cloud-a 38s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-nebula.atmosphere-game .theme-field-b {
+  width: 48vw;
+  height: 38vw;
+  right: -10vw;
+  bottom: -10vh;
+  background: radial-gradient(ellipse, rgba(247,197,235,.22), transparent 72%);
+  animation: ag-nebula-cloud-b 43s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-nebula.atmosphere-game .theme-field-c {
+  width: 38vw;
+  height: 24vw;
+  left: 34vw;
+  top: 42vh;
+  background: radial-gradient(ellipse, rgba(186,240,250,.13), transparent 72%);
+  animation: ag-nebula-cloud-c 31s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-nebula.atmosphere-game i {
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.95);
+  box-shadow:
+    12px 18px rgba(255,255,255,.70),
+    -19px 33px rgba(247,197,235,.65),
+    31px -23px rgba(186,240,250,.72),
+    52px 25px rgba(255,255,255,.48),
+    -37px -22px rgba(208,105,184,.50),
+    71px 58px rgba(186,240,250,.44),
+    -62px 70px rgba(255,255,255,.40),
+    89px -50px rgba(247,197,235,.40),
+    -91px 16px rgba(255,255,255,.28),
+    42px 94px rgba(208,105,184,.30);
+  opacity: .20;
+  animation: ag-nebula-dust 23s ease-in-out infinite alternate;
+  animation-duration: inherit;
+  animation-delay: inherit;
+}
+
+.game-shell > .atmosphere-nebula.atmosphere-game i:nth-of-type(4n) {
+  width: 4px;
+  height: 4px;
+  box-shadow:
+    18px 26px rgba(255,255,255,.82),
+    -29px 44px rgba(186,240,250,.64),
+    54px -34px rgba(247,197,235,.62);
+}
+
+@keyframes ag-nebula-cloud-a {
+  from { transform: translate3d(-6vw, 4vh,0) rotate(-9deg) scale(.90); }
+  to   { transform: translate3d(12vw,-8vh,0) rotate(2deg) scale(1.12); }
+}
+
+@keyframes ag-nebula-cloud-b {
+  from { transform: translate3d(7vw, 4vh,0) rotate(8deg) scale(1.06); }
+  to   { transform: translate3d(-13vw,-7vh,0) rotate(-4deg) scale(.88); }
+}
+
+@keyframes ag-nebula-cloud-c {
+  from { transform: translate3d(-7vw,0,0) scale(.82); opacity:.32; }
+  to   { transform: translate3d(9vw,-5vh,0) scale(1.22); opacity:.68; }
+}
+
+@keyframes ag-nebula-dust {
+  0% {
+    transform: translate3d(calc(var(--fx-drift-x) * -.35), calc(var(--fx-drift-y) * .30),0)
+      scale(calc(var(--fx-size) * .72));
+    opacity: .10;
+  }
+  45% { opacity: .32; }
+  100% {
+    transform: translate3d(var(--fx-drift-x), calc(var(--fx-drift-y) * -1),0)
+      scale(calc(var(--fx-size) * 1.18));
+    opacity: .16;
+  }
+}
+
+/* ------------------------------------------------------------
+   GARDEN PULSE
+   Ripples behave like raindrops: impact -> expansion -> energy loss.
+   ------------------------------------------------------------ */
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game {
+  background:
+    radial-gradient(circle at 16% 16%, rgba(186,240,250,.25), transparent 35%),
+    radial-gradient(circle at 84% 82%, rgba(247,197,235,.17), transparent 38%);
+}
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game .theme-field-a,
+.game-shell > .atmosphere-gardenPulse.atmosphere-game .theme-field-b {
+  border-radius: 50%;
+  border: 1px solid rgba(186,240,250,.12);
+  box-shadow: inset 0 0 38px rgba(247,197,235,.06);
+}
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game .theme-field-a {
+  width: 28vw;
+  height: 28vw;
+  left: 8vw;
+  top: 16vh;
+  animation: ag-garden-surface 17s ease-in-out infinite alternate;
+}
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game .theme-field-b {
+  width: 22vw;
+  height: 22vw;
+  right: 10vw;
+  bottom: 12vh;
+  animation: ag-garden-surface 21s ease-in-out -8s infinite alternate-reverse;
+}
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game i {
+  width: clamp(58px, 8vw, 118px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(208,105,184,.46);
+  box-shadow:
+    inset 0 0 12px rgba(247,197,235,.08),
+    0 0 0 1px rgba(186,240,250,.08);
+  opacity: 0;
+  animation: ag-garden-ripple 9s cubic-bezier(.18,.68,.28,1) infinite;
+  animation-duration: inherit;
+  animation-delay: inherit;
+}
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game i:nth-of-type(2n) {
+  border-color: rgba(186,240,250,.55);
+}
+
+.game-shell > .atmosphere-gardenPulse.atmosphere-game i:nth-of-type(5n) {
+  width: clamp(42px, 6vw, 88px);
+}
+
+@keyframes ag-garden-surface {
+  from { transform: translate3d(-3vw,1vh,0) scale(.92); opacity:.32; }
+  to   { transform: translate3d(5vw,-4vh,0) scale(1.08); opacity:.66; }
+}
+
+@keyframes ag-garden-ripple {
+  0% {
+    transform: translate3d(0,0,0) scale(.10);
+    opacity: .34;
+    border-width: 2.4px;
+  }
+  18% { opacity: .30; }
+  48% { opacity: .18; }
+  72% {
+    opacity: .08;
+    border-width: 1.1px;
+  }
+  100% {
+    transform: translate3d(12px,-7px,0) scale(3.25);
+    opacity: 0;
+    border-width: .45px;
+  }
+}
+
+/* Keep the UI and board readable above stronger game atmospheres. */
+.game-shell > .game-topbar,
+.game-shell > .turn-panel,
+.game-shell > .inactivity-notice,
+.game-shell > .player-grid,
+.game-shell > .board-section,
+.game-shell > .game-diagnostics,
+.game-shell > .game-signature {
+  position: relative;
+  z-index: 3;
+}
+
+/* Board remains glass, but no longer allows the moving scene to wash it out. */
+.game-shell .board-wrap {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.95),
+      color-mix(in srgb, var(--theme-bg-soft) 82%, white)
+    );
+  border-color: rgba(255,255,255,.94);
+  box-shadow:
+    0 30px 84px rgba(52,77,117,.22),
+    0 0 0 1px rgba(255,255,255,.62) inset;
+}
+
+.game-shell .cell {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.99),
+      color-mix(in srgb, var(--theme-cell-to) 88%, white)
+    );
+}
+
+/* Mobile keeps the same character but drops the heaviest off-screen particles. */
+@media (max-width: 700px) {
+  .game-shell > .atmosphere-aurora.atmosphere-game i:nth-of-type(n+9),
+  .game-shell > .atmosphere-crystal.atmosphere-game i:nth-of-type(n+13),
+  .game-shell > .atmosphere-stormlight.atmosphere-game i:nth-of-type(n+9),
+  .game-shell > .atmosphere-gardenPulse.atmosphere-game i:nth-of-type(n+21) {
+    display: none;
+  }
+
+  .game-shell > .atmosphere-bloom.atmosphere-game i:nth-of-type(n+27),
+  .game-shell > .atmosphere-nebula.atmosphere-game i:nth-of-type(n+37) {
+    display: none;
+  }
+
+  .game-shell > .atmosphere-aurora.atmosphere-game .theme-field-a,
+  .game-shell > .atmosphere-aurora.atmosphere-game .theme-field-b,
+  .game-shell > .atmosphere-aurora.atmosphere-game .theme-field-c {
+    filter: blur(28px);
+  }
+
+  .game-shell > .atmosphere-nebula.atmosphere-game .theme-field-a,
+  .game-shell > .atmosphere-nebula.atmosphere-game .theme-field-b,
+  .game-shell > .atmosphere-nebula.atmosphere-game .theme-field-c {
+    filter: blur(34px);
+  }
+}
+
+/* Respect accessibility settings. */
+@media (prefers-reduced-motion: reduce) {
+  .game-shell > .theme-atmosphere.atmosphere-game *,
+  .game-shell > .theme-atmosphere.atmosphere-game::before,
+  .game-shell > .theme-atmosphere.atmosphere-game::after {
+    animation: none !important;
+  }
+}

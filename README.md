@@ -4,94 +4,88 @@
 
 # AnchorGrid
 
-**Versión actual: v0.8.1**
+**Versión actual: v0.8.2**
 
-AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, diseñado para jugar de forma **local** o mediante **salas privadas** entre amigos. No hay matchmaking global ni salas públicas: el host crea una sala, recibe un código de 4 dígitos y comparte el enlace.
+AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, diseñado para jugar de forma **local** o mediante **salas privadas** entre amigos.
 
 **Sitio:** `https://luics415.github.io/AnchorGrid/`
 
-## Novedades v0.8.1
+## v0.8.2 — fondos de partida
 
-- La sección **Atmósferas** fue rediseñada con previews más grandes, animados y fáciles de distinguir.
-- Los seis temas ahora tienen movimiento continuo y propio:
-  - **Aurora:** manchas rosa/cian que recorren lentamente el fondo y cambian de tamaño.
-  - **Bloom:** lluvia continua de pétalos con distintas trayectorias y velocidades.
-  - **Crystal:** fragmentos fríos que flotan y cambian sutilmente de brillo.
-  - **Stormlight:** grandes tiras luminosas que se encienden y apagan en ciclos largos.
-  - **Nebula:** nubes suaves y polvo estelar claramente visible.
-  - **Garden Pulse:** ondas expansivas inspiradas en gotas de lluvia hasta desvanecerse.
-- El tablero es menos transparente para conservar legibilidad sobre fondos animados.
-- El final de partida en **escritorio** tiene una presentación más amplia y protagonista; móvil conserva su composición compacta.
-- En **2v2** la identidad deja de depender de los cuatro colores individuales:
-  - **Equipo Morado:** Norte + Sur.
-  - **Equipo Naranja:** Este + Oeste.
-  - Fichas, paredes, indicadores y etiquetas respetan el color del equipo.
-- **Juego Local** ahora tiene una sección propia en el menú principal, al mismo nivel que las salas online.
-- El texto “Probar partida local” fue reemplazado por **Iniciar partida local**.
-- Service Worker actualizado a `anchorgrid-v0.8.1` para evitar conservar estilos antiguos tras desplegar.
+Esta actualización corrige específicamente la interpretación visual de las atmósferas: los efectos descritos para Aurora, Bloom, Crystal, Stormlight, Nebula y Garden Pulse pertenecen al **fondo real durante la partida**, no a los botones del selector.
+
+Durante el juego:
+
+- **Aurora:** grandes manchas rosa/cian recorren lentamente distintas zonas del escenario y cambian de escala durante el trayecto.
+- **Bloom:** lluvia continua de pétalos con suficientes partículas y desfases para que nunca exista un periodo vacío evidente.
+- **Crystal:** fragmentos de cristal flotan, cambian sutilmente de brillo y dos reflejos fríos recorren lentamente el escenario.
+- **Stormlight:** grandes tiras luminosas permanecen apagadas durante periodos largos y después encienden/desvanecen lentamente.
+- **Nebula:** campo de polvo estelar mucho más denso, con pequeñas agrupaciones independientes y nubes espaciales en deriva.
+- **Garden Pulse:** ondas circulares nacen desde distintos puntos como gotas de lluvia, se expanden, pierden fuerza y desaparecen.
+
+`ThemeAtmosphere` ahora distingue entre una atmósfera ambiental normal y una **atmósfera de partida de alta presencia**, de modo que el menú/lobby no necesita cargar la misma cantidad de partículas que el tablero.
+
+El tablero conserva mayor prioridad visual y es más sólido para que las nuevas animaciones no reduzcan su legibilidad.
+
+## v0.8.1
+
+- Se agregó un apartado propio de **Juego Local** al menú.
+- El final de partida en escritorio fue ampliado y rediseñado, manteniendo la composición compacta en móvil.
+- En 2v2:
+  - Norte + Sur = **Equipo Morado**.
+  - Este + Oeste = **Equipo Naranja**.
+  - Fichas, paredes, indicadores y etiquetas respetan el equipo.
+- Todos los modos utilizan tablero 11×11 y 10 paredes por jugador.
+- El temporizador mantiene el aviso de inactividad antes de saltar el turno.
 
 ## Modos
 
-El tablero es siempre **11×11** y todos comienzan con **10 paredes por jugador**.
-
-- **Duelo 1v1:** Norte vs Sur. Gana quien llegue primero al borde opuesto.
-- **Todos al centro (4P):** cuatro jugadores compiten por alcanzar `(5,5)`.
-- **Equipos 2v2:** Norte + Sur (Morado) contra Este + Oeste (Naranja). Gana el equipo cuyo primer integrante alcance el centro.
+- **Duelo 1v1:** Norte contra Sur; gana quien alcanza primero el borde opuesto.
+- **Todos al centro (4P):** cuatro jugadores compiten por `(5,5)`.
+- **Equipos 2v2:** Morado contra Naranja; gana el equipo cuyo primer integrante alcanza el centro.
 
 ## Reglas principales
 
-- Una acción por turno: mover **o** colocar una pared.
-- Movimiento ortogonal.
-- Salto automático sobre fichas adyacentes.
-- Salto diagonal cuando una pared o borde impide saltar recto.
-- Paredes horizontales y verticales de dos segmentos.
+- Una acción por turno: mover o colocar una pared.
+- Movimiento siempre disponible tocando una casilla legal.
+- Las paredes se colocan arrastrándolas desde el dock.
+- Salto automático sobre una ficha adyacente.
+- Salto diagonal cuando una pared o el borde bloquean el salto recto.
+- Paredes horizontales/verticales de dos segmentos.
 - Sin cruces ni solapamientos.
-- BFS tras cada intento de pared: **ningún jugador activo puede quedar sin ruta a su objetivo**.
-- En modos de centro, la meta `(5,5)` jamás puede quedar completamente bloqueada.
-- Cada turno tiene 30 segundos.
-- Al agotarse el tiempo aparece un aviso de inactividad y un periodo de gracia; si tampoco hay respuesta, se salta únicamente ese turno.
+- BFS después de cada pared: ningún jugador activo puede quedarse sin una ruta válida.
+- La meta central jamás puede quedar completamente cerrada.
+- 30 segundos por turno.
+- Tras 30 segundos aparece aviso de inactividad; si tampoco responde durante la gracia, sólo se salta el turno.
 
 ## Juego local
 
-El menú principal incluye ahora un bloque dedicado a **Juego Local**. Usa el modo y atmósfera elegidos arriba y funciona sin Firebase ni sala online.
+El menú principal contiene un apartado dedicado a Juego Local. Utiliza el modo y atmósfera seleccionados y funciona sin una sala Firebase.
 
-Incluye:
+## Salas privadas
 
-- 1v1, 4P y 2v2.
-- Tablero 11×11.
-- 10 paredes por jugador.
-- Temporizador e inactividad.
-- Revancha inmediata al terminar.
+El online utiliza Firebase Anonymous Authentication + Realtime Database.
 
-## Salas privadas online
-
-La capa online utiliza **Firebase Anonymous Authentication + Realtime Database**.
-
-Flujo:
-
-1. El host pulsa **Crear sala**.
+1. El host crea la sala.
 2. AnchorGrid genera un código de 4 dígitos.
-3. La URL adopta la forma `?room=4826`.
-4. Los invitados entran con el enlace o escribiendo los 4 dígitos.
-5. El lobby muestra jugadores conectados, desconectados y asientos vacíos.
-6. El host inicia cuando estén todos los jugadores requeridos.
-7. Si el host cae, otro cliente conectado puede asumir autoridad sin destruir la partida.
+3. La invitación usa `?room=4826`.
+4. Los jugadores aparecen en el lobby en tiempo real.
+5. El host inicia cuando se completa la cantidad necesaria.
+6. Si el host se desconecta, la autoridad migra y la sala continúa.
 
-Al finalizar una partida online están disponibles:
+Al terminar una partida online:
 
-- **Regresar al lobby**.
-- **Menú principal**.
-- **Revancha X/N**, que inicia automáticamente cuando todos votan.
+- Regresar al lobby.
+- Menú principal.
+- Revancha `X/N`.
 
-## Atmósferas
-
-La identidad visual usa como fondo base `#B6DDFE` y la paleta:
+## Paleta
 
 ```text
 #344D75  #4A7CA1  #637D98  #B6DDFE  #BAF0FA  #F7C5EB  #D069B8
 ```
 
-Los efectos se mantienen detrás del tablero y de la interfaz. En pantallas pequeñas se reduce automáticamente el número de elementos ambientales para conservar rendimiento.
+El fondo base continúa partiendo de `#B6DDFE`.
 
 ## Stack
 
@@ -104,20 +98,20 @@ Los efectos se mantienen detrás del tablero y de la interfaz. En pantallas pequ
 - Vitest
 - GitHub Pages + GitHub Actions
 
-## Desarrollo local
+## Desarrollo
 
 ```bash
 npm install
 npm run dev
 ```
 
-Para probar desde otros dispositivos en la misma Wi-Fi:
+Para otros dispositivos en la misma Wi-Fi:
 
 ```bash
 npm run dev -- --host
 ```
 
-## Verificación antes de publicar
+Antes de publicar:
 
 ```bash
 npm test
@@ -128,17 +122,11 @@ Después:
 
 ```bash
 git add -A
-git commit -m "feat: AnchorGrid v0.8.1 visual polish and local mode"
+git commit -m "fix: AnchorGrid v0.8.2 in-game atmosphere scenes"
 git push
 ```
 
-GitHub Actions publicará `dist` en GitHub Pages.
-
-## Firebase
-
-La configuración Firebase pertenece al administrador del proyecto; los jugadores nunca deben introducir claves ni configuración técnica.
-
-Consulta `FIREBASE_SETUP.md` para configurar Authentication, Realtime Database y los secretos `VITE_FIREBASE_*` del workflow.
+El Service Worker usa `anchorgrid-v0.8.2` para evitar que GitHub Pages conserve el CSS anterior.
 
 <p align="center">
   <img src="./public/brand/signature.webp" alt="Luics415" width="340" />

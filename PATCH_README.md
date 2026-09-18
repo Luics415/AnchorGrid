@@ -1,50 +1,70 @@
-# AnchorGrid v0.8.1 — parche visual + Juego Local
+# AnchorGrid v0.8.2 — Game Atmospheres Hotfix
 
-Este ZIP **no contiene el proyecto completo**. Sólo incluye archivos nuevos o modificados para esta pasada.
+Este ZIP es un **parche incremental** para instalar encima de AnchorGrid v0.8.1.
+
+## Qué corrige
+
+Las instrucciones de Aurora/Bloom/Crystal/Stormlight/Nebula/Garden Pulse ahora se aplican específicamente al **fondo de la partida real**.
+
+No se trata de hacer más llamativos los botones del selector.
+
+## Archivos incluidos
+
+```text
+src/components/ThemeAtmosphere.tsx
+src/components/GameScreen.tsx
+src/styles/v0.8.2-game-atmospheres.css
+src/main.tsx
+public/sw.js
+package.json
+README.md
+```
 
 ## Instalación
 
-1. Haz una copia de seguridad de tu carpeta actual de AnchorGrid.
-2. Descomprime este ZIP.
-3. Copia su contenido encima de la raíz de tu repositorio local `AnchorGrid`.
-4. Acepta **reemplazar los archivos existentes**.
-5. El archivo `src/styles/v0.8.1-polish.css` es nuevo; confirma que se haya creado.
-6. No borres `.git`, `.env`, `node_modules` ni tus archivos Firebase.
+1. Descomprime este ZIP.
+2. Copia su contenido encima de la raíz de tu carpeta `AnchorGrid`.
+3. Acepta reemplazar los archivos existentes.
+4. No borres `.git`, `.env`, `node_modules` ni tus secretos/configuración Firebase.
 
-Después ejecuta:
+Después:
 
-```bash
+```powershell
 npm test
 npm run build
 ```
 
 Si ambos terminan correctamente:
 
-```bash
+```powershell
 git add -A
-git commit -m "feat: AnchorGrid v0.8.1 visual polish and local mode"
+git commit -m "fix: AnchorGrid v0.8.2 in-game atmosphere scenes"
 git push
 ```
 
-## Archivos incluidos
+## Importante después del deploy
 
-- `src/components/HomeScreen.tsx`
-- `src/components/ThemeAtmosphere.tsx`
-- `src/components/GameScreen.tsx`
-- `src/components/LobbyScreen.tsx`
-- `src/main.tsx`
-- `src/styles/v0.8.1-polish.css` **(nuevo)**
-- `package.json`
-- `public/sw.js`
-- `README.md`
+El parche cambia el Service Worker a:
 
-## Qué cambia
+```text
+anchorgrid-v0.8.2
+```
 
-- Cards de atmósferas rediseñadas.
-- Aurora, Bloom, Crystal, Stormlight, Nebula y Garden Pulse con movimiento más vivo y continuo.
-- Tablero menos transparente.
-- Resultado final mejorado en PC sin alterar la presentación móvil.
-- 2v2 Morado vs Naranja para fichas, paredes e indicadores.
-- Apartado completo de Juego Local en el menú.
-- README actualizado.
-- Cache PWA actualizado a v0.8.1.
+Aun así, si ves el fondo anterior después de GitHub Pages:
+
+- prueba `Ctrl + F5`;
+- o abre una pestaña privada una vez;
+- en móvil cierra completamente el navegador/PWA y vuelve a abrirlo.
+
+## Resultado esperado
+
+Durante una partida —local u online— los fondos deben ser claramente visibles:
+
+- Aurora: blobs rosa/cian recorriendo el escenario.
+- Bloom: pétalos cayendo sin pausas perceptibles.
+- Crystal: cristales flotantes + reflejos móviles.
+- Stormlight: tiras largas de luz con encendidos lentos.
+- Nebula: polvo estelar abundante y nubes en deriva.
+- Garden Pulse: ondas de impacto tipo gotas de lluvia.
+
+El tablero permanece por encima, más sólido y legible.
