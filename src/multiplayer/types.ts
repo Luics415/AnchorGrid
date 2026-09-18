@@ -34,4 +34,5 @@ export interface RoomRecord {
   authority: RoomAuthority;
   players: Record<string, RoomPlayer>;
   game: GameState | null;
+  rematchVotes: Record<string, boolean>;
 }

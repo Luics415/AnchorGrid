@@ -19,6 +19,10 @@ interface Props {
   onAction: (action: GameAction) => void | Promise<void>;
   onLeave: () => void;
   onRematch: () => void;
+  onRequestRematch?: () => void;
+  onReturnLobby?: () => void;
+  rematchVotes?: Record<string, boolean>;
+  requiredPlayers?: number;
 }
 
 function winnerLabel(game: GameState) {
@@ -39,7 +43,11 @@ export function GameScreen({
   serverNow,
   onAction,
   onLeave,
-  onRematch
+  onRematch,
+  onRequestRematch,
+  onReturnLobby,
+  rematchVotes = {},
+  requiredPlayers
 }: Props) {
   const [now, setNow] = useState(serverNow());
   const timeoutRevisionRef = useRef<number | null>(null);
@@ -66,6 +74,9 @@ export function GameScreen({
   }, [game.status, game.revision, game.turn.currentPlayerId, remainingMs, mayDriveTimer, onAction]);
 
   const sortedPlayers = useMemo(() => [...game.players].sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat)), [game.players]);
+  const rematchCount = Object.values(rematchVotes).filter(Boolean).length;
+  const rematchTarget = requiredPlayers ?? game.players.length;
+  const localVotedRematch = Boolean(localPlayerId && rematchVotes[localPlayerId]);
 
   return (
     <main className={`game-shell theme-${game.themeId}`}>
@@ -135,9 +146,24 @@ export function GameScreen({
             <div className="result-symbol">✦</div>
             <h2>{winnerLabel(game)}</h2>
             <p>{game.winnerTeamId ? 'El equipo alcanzó la meta o fue el último con jugadores activos.' : 'Ha ganado la partida.'}</p>
-            <div className="result-actions">
-              <button className="ghost-button" onClick={onLeave}>Volver</button>
-              {(canControlAll || isHost) && <button className="primary-button" onClick={onRematch}>Revancha</button>}
+            <div className="result-actions result-actions-grid">
+              {roomCode ? (
+                <>
+                  <button className="secondary-button" onClick={onReturnLobby} disabled={!networkConnected} title="Volver con todos a la sala de espera">
+                    Regresar al lobby
+                  </button>
+                  <button className="ghost-button" onClick={onLeave}>Menú principal</button>
+                  <button className="primary-button rematch-vote-button" onClick={onRequestRematch} disabled={localVotedRematch || !networkConnected}>
+                    {`Revancha ${rematchCount}/${rematchTarget}${localVotedRematch ? ' ✓' : ''}`}
+                  </button>
+                  <small className="result-help">Regresar al lobby devuelve la sala completa a espera. La revancha inicia automáticamente cuando voten todos.</small>
+                </>
+              ) : (
+                <>
+                  <button className="ghost-button" onClick={onLeave}>Menú principal</button>
+                  <button className="primary-button" onClick={onRematch}>Revancha</button>
+                </>
+              )}
             </div>
           </section>
         </div>

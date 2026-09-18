@@ -1,11 +1,10 @@
-import { useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import { MODE_CONFIG, THEMES, type GameMode, type ThemeChoice } from '../game';
 import { usePreferences } from '../store/usePreferences';
 import { useAppTheme } from '../theme/useAppTheme';
 import { ThemeAtmosphere } from './ThemeAtmosphere';
 import { NetworkStatus } from './NetworkStatus';
 import { BrandSignature } from './BrandSignature';
-import { saveRuntimeFirebaseConfig } from '../multiplayer/firebase';
 
 type PreviewStyle = CSSProperties & { '--preview-a': string; '--preview-b': string; '--preview-c': string };
 
@@ -43,35 +42,16 @@ export function HomeScreen({
     setThemeChoice
   } = usePreferences();
 
-  const [onlineSetupOpen, setOnlineSetupOpen] = useState(false);
-  const [firebaseSnippet, setFirebaseSnippet] = useState('');
-  const [setupError, setSetupError] = useState('');
-
   useAppTheme(themeChoice);
 
   function createRoom() {
-    if (!firebaseConfigured) {
-      setOnlineSetupOpen(true);
-      return;
-    }
+    if (!firebaseConfigured || !firebaseConnected) return;
     onCreateOnline();
   }
 
   function joinRoom() {
-    if (!firebaseConfigured) {
-      setOnlineSetupOpen(true);
-      return;
-    }
+    if (!firebaseConfigured || !firebaseConnected) return;
     onJoinOnline();
-  }
-
-  function connectFirebase() {
-    setSetupError('');
-    try {
-      saveRuntimeFirebaseConfig(firebaseSnippet);
-    } catch (cause) {
-      setSetupError(cause instanceof Error ? cause.message : 'No se pudo guardar la configuración.');
-    }
   }
 
   return (
@@ -149,8 +129,8 @@ export function HomeScreen({
             <h2>Crear partida</h2>
             <p className="muted">Código de 4 dígitos, enlace directo y migración automática de host.</p>
           </div>
-          <button className="primary-button" disabled={busy || nickname.trim().length < 2 || (firebaseConfigured && !firebaseConnected)} onClick={createRoom}>
-            {busy ? 'Preparando…' : firebaseConfigured && !firebaseConnected ? 'Conectando…' : 'Crear sala'}
+          <button className="primary-button" disabled={busy || nickname.trim().length < 2 || !firebaseConfigured || !firebaseConnected} onClick={createRoom}>
+            {busy ? 'Creando sala…' : !firebaseConfigured ? 'Online no configurado' : !firebaseConnected ? 'Conectando…' : 'Crear sala'}
           </button>
           {firebaseConfigured && firebaseConnected && <p className="online-ready">● Online listo · sincronización directa</p>}
         </div>
@@ -163,7 +143,7 @@ export function HomeScreen({
           </div>
           <div className="join-row">
             <input className="code-input" inputMode="numeric" value={roomCode} onChange={(event) => setRoomCode(event.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4826" aria-label="Código de sala" />
-            <button className="secondary-button" disabled={busy || nickname.trim().length < 2 || roomCode.length !== 4 || (firebaseConfigured && !firebaseConnected)} onClick={joinRoom}>Entrar</button>
+            <button className="secondary-button" disabled={busy || nickname.trim().length < 2 || roomCode.length !== 4 || !firebaseConfigured || !firebaseConnected} onClick={joinRoom}>Entrar</button>
           </div>
           {resuming && <p className="mini-status">Buscando tu asiento reservado…</p>}
         </div>
@@ -172,29 +152,9 @@ export function HomeScreen({
       {error && <div className="notice error-notice">{error}</div>}
 
       {!firebaseConfigured && (
-        <section className={`online-setup glass-panel ${onlineSetupOpen ? 'open' : ''}`}>
-          <button className="online-setup-toggle" onClick={() => setOnlineSetupOpen((value) => !value)}>
-            <span><b>Salas privadas</b><small>{onlineSetupOpen ? 'Ocultar configuración' : 'Conectar Firebase para crear códigos de 4 dígitos'}</small></span>
-            <strong>{onlineSetupOpen ? '−' : '+'}</strong>
-          </button>
-          {onlineSetupOpen && (
-            <div className="online-setup-body">
-              <p>Pega el objeto <code>firebaseConfig</code> de tu Web App. Se guarda sólo en este navegador. Si creas una sala con esta configuración, la invitación directa puede transportarla al dispositivo de tus amigos.</p>
-              <textarea
-                className="firebase-config-input"
-                value={firebaseSnippet}
-                onChange={(event) => setFirebaseSnippet(event.target.value)}
-                placeholder={'const firebaseConfig = {\n  apiKey: "...",\n  authDomain: "...",\n  databaseURL: "https://...firebaseio.com",\n  projectId: "...",\n  appId: "..."\n};'}
-                spellCheck={false}
-              />
-              {setupError && <div className="notice error-notice">{setupError}</div>}
-              <div className="online-setup-actions">
-                <button className="primary-button" onClick={connectFirebase} disabled={!firebaseSnippet.trim()}>Activar salas</button>
-                <small>Authentication anónimo y Realtime Database deben estar habilitados en Firebase.</small>
-              </div>
-            </div>
-          )}
-        </section>
+        <div className="notice online-service-notice">
+          El servicio de salas online aún no está conectado en este despliegue. La configuración es del administrador y nunca debe pedirse a los jugadores.
+        </div>
       )}
 
       <button className="local-test-button" disabled={nickname.trim().length < 2} onClick={onStartLocal}>Probar partida local</button>

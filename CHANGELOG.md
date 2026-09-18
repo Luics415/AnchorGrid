@@ -1,3 +1,15 @@
+# AnchorGrid changelog
+
+## v0.7.0
+
+- Crear sala entra directamente al lobby privado cuando el servicio online está configurado.
+- El lobby muestra URL `?room=####`, código de 4 dígitos, conectados/offline, copiar y compartir.
+- Se elimina la configuración técnica de Firebase de la interfaz para jugadores.
+- Resultado online: Regresar al lobby, Menú principal y votación Revancha X/N.
+- La revancha inicia automáticamente cuando votan todos los jugadores requeridos.
+- Si alguien sale tras terminar, la sala vuelve al lobby para permitir reemplazo.
+- Se conserva migración automática de host, presencia y reconexión.
+
 # Changelog
 
 ## 0.6.0

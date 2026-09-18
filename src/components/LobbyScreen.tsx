@@ -4,7 +4,6 @@ import { useAppTheme } from '../theme/useAppTheme';
 import { ThemeAtmosphere } from './ThemeAtmosphere';
 import { NetworkStatus } from './NetworkStatus';
 import { BrandSignature } from './BrandSignature';
-import { getShareableFirebaseConfigParam } from '../multiplayer/firebase';
 
 interface Props {
   room: RoomRecord;
@@ -29,10 +28,7 @@ export function LobbyScreen({ room, isHost, networkConnected, serverOffsetMs, er
   const players = Object.values(room.players).sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat));
   const connected = players.filter((player) => player.connected).length;
   const ready = connected === room.meta.requiredPlayers;
-  const cfg = getShareableFirebaseConfigParam();
-  const inviteParams = new URLSearchParams({ room: room.code });
-  if (cfg) inviteParams.set('cfg', cfg);
-  const invite = `${window.location.origin}${window.location.pathname}?${inviteParams.toString()}`;
+  const invite = `${window.location.origin}${window.location.pathname}?room=${room.code}`;
 
   async function copyInvite() {
     const text = `Únete a mi partida de AnchorGrid. Código: ${room.code}\n${invite}`;
@@ -60,6 +56,18 @@ export function LobbyScreen({ room, isHost, networkConnected, serverOffsetMs, er
           <NetworkStatus connected={networkConnected} isHost={isHost} epoch={room.authority.epoch} />
           <button className="secondary-button" onClick={copyInvite}>Copiar invitación</button>
           <button className="secondary-button" onClick={shareInvite}>Compartir</button>
+        </div>
+      </section>
+
+      <section className="glass-panel lobby-invite-card">
+        <div className="lobby-invite-copy">
+          <p className="eyebrow">INVITACIÓN</p>
+          <strong>Comparte el enlace o el código</strong>
+          <code>{invite}</code>
+        </div>
+        <div className="lobby-invite-code" aria-label={`Código de sala ${room.code}`}>
+          <small>CÓDIGO</small>
+          <b>{room.code}</b>
         </div>
       </section>
 

@@ -178,3 +178,8 @@ El fondo principal permanece en `#B6DDFE`.
 ## v0.6.0
 
 Online play now uses direct Firebase Realtime Database transactions for moves and wall placement, reducing host-relay latency. All modes start with 10 walls. At 30 seconds the active player receives an inactivity warning; after a 10-second grace period the game skips only that turn rather than eliminating or disconnecting the player.
+
+
+## Flujo online
+
+El comportamiento de creación, lobby, invitaciones y revancha está documentado en [`ONLINE_FLOW.md`](ONLINE_FLOW.md).

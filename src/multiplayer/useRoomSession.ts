@@ -7,6 +7,8 @@ import {
   joinRoom,
   leaveRoom,
   restartRoom,
+  returnRoomToLobby,
+  voteRematch,
   resumeRoom,
   startRoom,
   submitAction,
@@ -138,6 +140,26 @@ export function useRoomSession() {
     }
   }, [room, serverNow]);
 
+  const returnToLobby = useCallback(async () => {
+    if (!room) return;
+    setError('');
+    try {
+      await returnRoomToLobby(room.code, serverNow());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo regresar al lobby.');
+    }
+  }, [room, serverNow]);
+
+  const requestRematch = useCallback(async () => {
+    if (!room) return;
+    setError('');
+    try {
+      await voteRematch(room.code, serverNow());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo registrar tu revancha.');
+    }
+  }, [room, serverNow]);
+
   const act = useCallback(async (action: GameAction) => {
     const current = roomRef.current;
     if (!current?.game) return;
@@ -192,6 +214,8 @@ export function useRoomSession() {
     resume,
     start,
     rematch,
+    returnToLobby,
+    requestRematch,
     act,
     leave,
     setError

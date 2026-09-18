@@ -108,6 +108,10 @@ export default function App() {
         onAction={online.act}
         onLeave={leaveOnline}
         onRematch={online.rematch}
+        onRequestRematch={online.requestRematch}
+        onReturnLobby={online.returnToLobby}
+        rematchVotes={online.room.rematchVotes}
+        requiredPlayers={online.room.meta.requiredPlayers}
       />
     );
   }

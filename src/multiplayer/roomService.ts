@@ -29,7 +29,7 @@ function roomRef(code: string) {
 
 function normalizeRoom(code: string, value: Omit<RoomRecord, 'code'> | null): RoomRecord | null {
   if (!value) return null;
-  const room: RoomRecord = { code, ...value };
+  const room: RoomRecord = { code, ...value, rematchVotes: value.rematchVotes ?? {} };
   if (room.game) {
     room.game = {
       ...room.game,
@@ -127,6 +127,7 @@ export async function createRoom(input: {
       },
       players: { [user.uid]: player },
       game: null,
+      rematchVotes: {},
     };
 
     const result = await runTransaction(roomRef(code), (current) => {
@@ -255,7 +256,8 @@ export async function startRoom(code: string, serverNow: number) {
   await update(roomRef(code), {
     game,
     'meta/status': 'playing',
-    'meta/updatedAt': serverNow
+    'meta/updatedAt': serverNow,
+    rematchVotes: {}
   });
 }
 
@@ -284,8 +286,64 @@ export async function restartRoom(code: string, serverNow: number) {
   await update(roomRef(code), {
     game,
     'meta/status': 'playing',
+    'meta/updatedAt': serverNow,
+    rematchVotes: {}
+  });
+}
+
+/** Return the whole room to the waiting lobby while keeping seats and presence. */
+export async function returnRoomToLobby(code: string, serverNow: number) {
+  const user = await ensureAnonymousUser();
+  const room = await getRoom(code);
+  if (!room) throw new Error('Sala no encontrada.');
+  if (!room.players?.[user.uid]) throw new Error('No perteneces a esta sala.');
+  if (!room.game || room.game.status !== 'finished') throw new Error('La partida todavía no ha terminado.');
+
+  await update(roomRef(code), {
+    game: null,
+    rematchVotes: {},
+    'meta/status': 'lobby',
     'meta/updatedAt': serverNow
   });
+}
+
+/**
+ * Every connected player can vote for a rematch. When all required players
+ * have voted, the final voter atomically starts a fresh game for the room.
+ */
+export async function voteRematch(code: string, serverNow: number) {
+  const user = await ensureAnonymousUser();
+  const root = roomRef(code);
+
+  const result = await runTransaction(root, (room) => {
+    if (!room?.game || room.game.status !== 'finished') return room;
+    if (!room.players?.[user.uid]?.connected) return room;
+
+    room.rematchVotes = room.rematchVotes ?? {};
+    room.rematchVotes[user.uid] = true;
+
+    const connected = (Object.values(room.players) as RoomPlayer[])
+      .filter((player) => player.connected)
+      .sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat));
+    const votes = connected.filter((player) => room.rematchVotes?.[player.uid]).length;
+
+    if (connected.length === room.meta.requiredPlayers && votes === room.meta.requiredPlayers) {
+      room.game = createGameState({
+        mode: room.meta.mode as GameMode,
+        themeId: room.meta.themeId as ThemeId,
+        now: serverNow,
+        gameId: `${code}-${serverNow}`,
+        players: connected.map((player) => ({ id: player.uid, name: player.name, seat: player.seat }))
+      });
+      room.meta.status = 'playing';
+      room.meta.updatedAt = serverNow;
+      room.rematchVotes = {};
+    }
+
+    return room;
+  }, { applyLocally: false });
+
+  if (!result.committed) throw new Error('No se pudo registrar el voto de revancha.');
 }
 
 export async function submitAction(
@@ -340,7 +398,7 @@ export async function leaveRoom(code: string) {
   const current = await getRoom(code);
   if (!current?.players?.[user.uid]) return;
 
-  if (current.meta.status === 'playing') {
+  if (current.meta.status === 'playing' && current.game?.status !== 'finished') {
     await update(ref(getFirebase().database, `rooms/${code}/players/${user.uid}`), {
       connected: false,
       lastSeenAt: serverTimestamp()
@@ -348,14 +406,17 @@ export async function leaveRoom(code: string) {
     return;
   }
 
-  // In lobby, an explicit leave frees the seat. If the host leaves, authority
-  // moves immediately to the first remaining connected seat.
+  // In lobby or after a finished match, an explicit leave frees the seat.
+  // The remaining players keep their result screen until somebody explicitly
+  // returns the shared room to the lobby.
   await runTransaction(roomRef(code), (room) => {
     if (!room?.players?.[user.uid]) return room;
     delete room.players[user.uid];
 
     const remaining = Object.values(room.players) as RoomPlayer[];
     if (remaining.length === 0) return null;
+
+    if (room.rematchVotes?.[user.uid]) delete room.rematchVotes[user.uid];
 
     if (room.authority?.hostUid === user.uid) {
       const seats = MODE_CONFIG[room.meta.mode as GameMode].seats;

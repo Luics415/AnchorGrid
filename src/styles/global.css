@@ -1326,3 +1326,64 @@ body::before, body::after { z-index: 0; }
 }
 
 .online-ready { margin:8px 0 0; font-size:10px; font-weight:850; color:#087c49; letter-spacing:.02em; }
+
+
+/* v0.7.0 · private-room UX */
+.lobby-invite-card {
+  margin-top: 16px;
+  border-radius: 26px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+.lobby-invite-copy { min-width: 0; display: grid; gap: 5px; }
+.lobby-invite-copy strong { font-size: clamp(18px, 3vw, 25px); color: var(--text); }
+.lobby-invite-copy code {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid rgba(255,255,255,.6);
+  background: rgba(255,255,255,.34);
+  border-radius: 12px;
+  padding: 9px 11px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.lobby-invite-code {
+  min-width: 132px;
+  min-height: 104px;
+  padding: 12px 18px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.72);
+  background: linear-gradient(145deg, rgba(255,255,255,.52), color-mix(in srgb,var(--theme-accent) 16%, rgba(255,255,255,.3)));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 14px 35px rgba(52,77,117,.10);
+}
+.lobby-invite-code small { font-size: 9px; letter-spacing: .22em; color: var(--muted); font-weight: 800; }
+.lobby-invite-code b { margin-top: 3px; font-size: 34px; line-height: 1; letter-spacing: .13em; color: var(--arc-1); }
+.online-service-notice { max-width: 920px; margin: 14px auto 0; text-align: center; }
+.result-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  width: 100%;
+}
+.result-actions-grid button { min-height: 48px; }
+.result-actions-grid .result-help { grid-column: 1 / -1; color: var(--muted); line-height: 1.45; padding: 2px 8px 0; }
+.rematch-vote-button { position: relative; overflow: hidden; }
+.rematch-vote-button:disabled { opacity: .78; }
+
+@media (max-width: 680px) {
+  .lobby-invite-card { grid-template-columns: 1fr; }
+  .lobby-invite-code { min-height: 86px; width: 100%; }
+  .result-actions-grid { grid-template-columns: 1fr; }
+  .result-actions-grid .result-help { grid-column: 1; }
+}

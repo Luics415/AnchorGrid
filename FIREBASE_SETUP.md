@@ -1,5 +1,8 @@
 # Firebase para pruebas privadas
 
+> **Importante:** Firebase es infraestructura interna de AnchorGrid. En producción ningún jugador debe pegar configuración técnica. El sitio publicado recibe `VITE_FIREBASE_*` durante el build de GitHub Actions y el botón **Crear sala** debe llevar directamente al lobby `?room=####`.
+
+
 AnchorGrid usa Firebase sólo para identidad anónima, presencia y sincronización de salas privadas. No usa cuentas visibles ni matchmaking global.
 
 ## Activación rápida desde la propia web
