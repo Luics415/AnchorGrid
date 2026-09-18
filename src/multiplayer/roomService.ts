@@ -145,65 +145,134 @@ export async function createRoom(input: {
 
 export async function joinRoom(codeInput: string, name: string): Promise<RoomRecord> {
   const code = codeInput.replace(/\D/g, '').slice(0, 4);
-  if (code.length !== 4) throw new Error('El código debe tener 4 dígitos.');
+
+  if (code.length !== 4) {
+    throw new Error('El código debe tener 4 dígitos.');
+  }
 
   const user = await ensureAnonymousUser();
   const now = Date.now();
 
-  const result = await runTransaction(roomRef(code), (current) => {
-    if (!current) return;
-    if (current.meta?.expiresAt && current.meta.expiresAt <= now) return;
+  // Primero comprobamos la sala y su configuración.
+  const room = await getRoom(code);
 
-    const players = current.players ?? {};
-    const existing = players[user.uid];
+  if (!room) {
+    throw new Error('La sala no existe o ya expiró.');
+  }
 
-    if (existing) {
-      players[user.uid] = {
-        ...existing,
+  if (room.meta.expiresAt && room.meta.expiresAt <= now) {
+    throw new Error('La sala ya expiró.');
+  }
+
+  const existingPlayer = room.players?.[user.uid];
+
+  if (room.meta.status !== 'lobby' && !existingPlayer) {
+    throw new Error('La partida ya comenzó y este dispositivo no tiene un asiento reservado.');
+  }
+
+  const config = MODE_CONFIG[room.meta.mode];
+
+  // Reservamos únicamente /players.
+  // Las actualizaciones de presencia/authority/meta ya no interfieren.
+  const playersRef = ref(
+    getFirebase().database,
+    `rooms/${code}/players`
+  );
+
+  const result = await runTransaction(
+    playersRef,
+    (currentPlayers) => {
+      const players: Record<string, RoomPlayer> =
+        currentPlayers ?? {};
+
+      // Este dispositivo ya tenía un asiento:
+      // simplemente recuperarlo.
+      const existing = players[user.uid];
+
+      if (existing) {
+        return {
+          ...players,
+          [user.uid]: {
+            ...existing,
+            name,
+            connected: true,
+            lastSeenAt: now
+          }
+        };
+      }
+
+      const usedSeats = new Set(
+        Object.values(players).map((player) => player.seat)
+      );
+
+      const seat = config.seats.find(
+        (candidate) => !usedSeats.has(candidate)
+      );
+
+      // Realmente llena.
+      if (!seat) {
+        return;
+      };
+
+      const newPlayer: RoomPlayer = {
+        uid: user.uid,
         name,
+        seat,
+
+        ...(room.meta.mode === 'team2v2'
+          ? { teamId: TEAM_BY_SEAT[seat] }
+          : {}),
+
         connected: true,
+        joinedAt: now,
         lastSeenAt: now
       };
-      current.players = players;
-      current.meta.updatedAt = now;
-      return current;
+
+      return {
+        ...players,
+        [user.uid]: newPlayer
+      };
+    },
+    {
+      applyLocally: false
     }
-
-    if (current.meta.status !== 'lobby') return;
-
-    const config = MODE_CONFIG[current.meta.mode as GameMode];
-    const usedSeats = new Set(Object.values(players).map((player) => (player as RoomPlayer).seat));
-    const seat = config.seats.find((candidate) => !usedSeats.has(candidate));
-    if (!seat) return;
-
-    players[user.uid] = {
-      uid: user.uid,
-      name,
-      seat,
-      ...(current.meta.mode === 'team2v2'
-        ? { teamId: TEAM_BY_SEAT[seat] }
-        : {}),
-      connected: true,
-      joinedAt: now,
-      lastSeenAt: now
-    } satisfies RoomPlayer;
-
-    current.players = players;
-    current.meta.updatedAt = now;
-    return current;
-  }, { applyLocally: false });
+  );
 
   if (!result.committed) {
     const latest = await getRoom(code);
-    if (!latest) throw new Error('La sala no existe o ya expiró.');
-    if (latest.meta.status !== 'lobby' && !latest.players[user.uid]) {
-      throw new Error('La partida ya comenzó y este dispositivo no tiene un asiento reservado.');
+
+    if (!latest) {
+      throw new Error('La sala ya no existe.');
     }
-    throw new Error('La sala está llena o cambió mientras intentabas entrar. Intenta nuevamente.');
+
+    const players = Object.values(latest.players ?? {});
+    const config = MODE_CONFIG[latest.meta.mode];
+
+    if (players.length >= config.requiredPlayers) {
+      throw new Error(
+        `La sala está llena (${players.length}/${config.requiredPlayers}).`
+      );
+    }
+
+    throw new Error(
+      'No se pudo reservar el asiento. Intenta nuevamente.'
+    );
   }
 
-  const joined = normalizeRoom(code, result.snapshot.val());
-  if (!joined?.players[user.uid]) throw new Error('No se pudo reservar un asiento.');
+  // Esto no necesita participar en la reserva del asiento.
+  await update(
+    ref(getFirebase().database, `rooms/${code}/meta`),
+    {
+      updatedAt: now
+    }
+  );
+
+  const joined = await getRoom(code);
+
+  if (!joined?.players?.[user.uid]) {
+    throw new Error('El asiento se reservó, pero no pudo recuperarse.');
+  }
+
   return joined;
 }
 
