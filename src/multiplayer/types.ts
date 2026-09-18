@@ -28,19 +28,10 @@ export interface RoomAuthority {
   claimedAt: number;
 }
 
-export interface ActionRequest {
-  uid: string;
-  expectedRevision: number;
-  authorityEpoch?: number;
-  action: import('../game').GameAction;
-  createdAt: number | object;
-}
-
 export interface RoomRecord {
   code: string;
   meta: RoomMeta;
   authority: RoomAuthority;
   players: Record<string, RoomPlayer>;
   game: GameState | null;
-  actionRequests?: Record<string, ActionRequest>;
 }

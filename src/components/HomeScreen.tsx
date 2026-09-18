@@ -149,9 +149,10 @@ export function HomeScreen({
             <h2>Crear partida</h2>
             <p className="muted">Código de 4 dígitos, enlace directo y migración automática de host.</p>
           </div>
-          <button className="primary-button" disabled={busy || nickname.trim().length < 2} onClick={createRoom}>
-            {busy ? 'Preparando…' : 'Crear sala'}
+          <button className="primary-button" disabled={busy || nickname.trim().length < 2 || (firebaseConfigured && !firebaseConnected)} onClick={createRoom}>
+            {busy ? 'Preparando…' : firebaseConfigured && !firebaseConnected ? 'Conectando…' : 'Crear sala'}
           </button>
+          {firebaseConfigured && firebaseConnected && <p className="online-ready">● Online listo · sincronización directa</p>}
         </div>
 
         <div className="glass-panel setup-card action-card online-card">
@@ -162,7 +163,7 @@ export function HomeScreen({
           </div>
           <div className="join-row">
             <input className="code-input" inputMode="numeric" value={roomCode} onChange={(event) => setRoomCode(event.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4826" aria-label="Código de sala" />
-            <button className="secondary-button" disabled={busy || nickname.trim().length < 2 || roomCode.length !== 4} onClick={joinRoom}>Entrar</button>
+            <button className="secondary-button" disabled={busy || nickname.trim().length < 2 || roomCode.length !== 4 || (firebaseConfigured && !firebaseConnected)} onClick={joinRoom}>Entrar</button>
           </div>
           {resuming && <p className="mini-status">Buscando tu asiento reservado…</p>}
         </div>

@@ -37,7 +37,8 @@ export function createGameState(input: {
       position: { ...START_POSITIONS[seat] },
       wallsRemaining: config.wallsPerPlayer,
       connected: true,
-      eliminated: false
+      eliminated: false,
+      inactivityWarnings: 0
     };
   });
 
@@ -61,7 +62,8 @@ export function createGameState(input: {
       currentPlayerId: firstPlayerId,
       startedAt: now,
       endsAt: now + TURN_DURATION_MS,
-      durationMs: TURN_DURATION_MS
+      durationMs: TURN_DURATION_MS,
+      phase: 'active'
     },
     revision: 1,
     moveNumber: 1

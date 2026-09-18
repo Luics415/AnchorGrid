@@ -1248,3 +1248,81 @@ body::before, body::after { z-index: 0; }
 .firebase-config-input:focus { border-color:color-mix(in srgb,var(--theme-accent) 60%,white); box-shadow:0 0 0 3px color-mix(in srgb,var(--theme-accent) 12%,transparent); }
 .online-setup-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .online-setup-actions small { color:var(--muted); font-size:9px; line-height:1.45; flex:1 1 240px; }
+
+
+/* ============================================================
+   AnchorGrid v0.6 · smoother theme motion + inactivity warning
+   ============================================================ */
+.theme-atmosphere {
+  opacity: .50;
+  filter: saturate(.78) contrast(1.04);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+.theme-atmosphere i {
+  opacity: .18;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translate3d(0,0,0);
+}
+
+.atmosphere-aurora i { animation: aurora-flow-v6 24s cubic-bezier(.42,0,.58,1) infinite alternate; }
+@keyframes aurora-flow-v6 {
+  0% { transform:translate3d(-18px,10px,0) rotate(-10deg) scaleX(.96); opacity:.10; }
+  50% { transform:translate3d(18px,-8px,0) rotate(-5deg) scaleX(1.03); opacity:.20; }
+  100% { transform:translate3d(42px,-18px,0) rotate(3deg) scaleX(1.08); opacity:.13; }
+}
+.atmosphere-bloom i { animation: petal-fall-v6 21s linear infinite; }
+@keyframes petal-fall-v6 {
+  0% { transform:translate3d(-12px,-18vh,0) rotate(0deg); opacity:0; }
+  12% { opacity:.19; }
+  84% { opacity:.14; }
+  100% { transform:translate3d(34px,112vh,0) rotate(360deg); opacity:0; }
+}
+.atmosphere-crystal i { animation: crystal-float-v6 20s cubic-bezier(.42,0,.58,1) infinite alternate; }
+@keyframes crystal-float-v6 {
+  from { transform:translate3d(0,8px,0) rotate(-2deg) scale(.98); opacity:.10; }
+  to { transform:translate3d(14px,-22px,0) rotate(4deg) scale(1.02); opacity:.20; }
+}
+.atmosphere-stormlight i { animation: storm-drift-v6 12s ease-in-out infinite; opacity:.08; }
+@keyframes storm-drift-v6 {
+  0%,100% { transform:translate3d(0,-8px,0) rotate(-12deg) skewX(-12deg); opacity:.035; }
+  46% { transform:translate3d(8px,8px,0) rotate(-9deg) skewX(-12deg); opacity:.07; }
+  50% { opacity:.18; }
+  54% { opacity:.06; }
+}
+.atmosphere-nebula i { animation: star-twinkle-v6 6.5s ease-in-out infinite alternate; }
+@keyframes star-twinkle-v6 { from { opacity:.08; transform:scale(.72); } to { opacity:.22; transform:scale(1.08); } }
+.atmosphere-nebula::before, .atmosphere-nebula::after { animation: nebula-drift-v6 26s ease-in-out infinite alternate; }
+@keyframes nebula-drift-v6 { from { transform:translate3d(-10px,4px,0) rotate(-12deg) scale(.98); } to { transform:translate3d(24px,-14px,0) rotate(-6deg) scale(1.04); } }
+.atmosphere-gardenPulse i { animation: garden-pulse-v6 10s ease-out infinite; }
+@keyframes garden-pulse-v6 { 0%{transform:scale(.58);opacity:.18} 72%{opacity:.08} 100%{transform:scale(1.38);opacity:0} }
+
+.inactivity-phase {
+  border-color: rgba(242,154,54,.45);
+  box-shadow: 0 12px 30px rgba(164,91,17,.10), inset 0 0 0 1px rgba(255,255,255,.46);
+}
+.inactivity-notice {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-color: rgba(242,154,54,.38);
+  background: linear-gradient(135deg, rgba(255,248,231,.72), rgba(255,255,255,.36));
+}
+.inactivity-notice.for-you { animation: inactivity-attention-v6 1.8s ease-in-out infinite; }
+.inactivity-icon {
+  width:34px; height:34px; flex:0 0 auto; border-radius:50%; display:grid; place-items:center;
+  font-weight:950; font-size:18px; color:#7d4900;
+  background:#ffd77a; box-shadow:0 0 0 5px rgba(255,215,122,.18);
+}
+.inactivity-notice strong { display:block; color:var(--arc-1); font-size:13px; }
+.inactivity-notice p { margin:2px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+@keyframes inactivity-attention-v6 { 50% { transform:translateY(-1px); box-shadow:0 12px 28px rgba(164,91,17,.13); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-atmosphere i, .theme-atmosphere::before, .theme-atmosphere::after, .inactivity-notice.for-you { animation:none !important; }
+}
+
+.online-ready { margin:8px 0 0; font-size:10px; font-weight:850; color:#087c49; letter-spacing:.02em; }

@@ -69,3 +69,34 @@ Agrega cada variable `VITE_FIREBASE_*` como **Repository secret**. El workflow i
 6. Reconectar A y comprobar que conserva su ficha sin recuperar la autoridad.
 
 Después usa `MULTIDEVICE_TEST.md` para la matriz completa de pruebas.
+
+
+## Recommended setup for Mexico + Colombia
+
+For Realtime Database, create the instance in **us-central1 (Iowa)**. Realtime Database currently offers Iowa, Belgium and Singapore; Iowa is the practical shared choice for players in Mexico and Colombia. The database location cannot be changed after creation.
+
+### Make online rooms work for everyone on GitHub Pages
+
+The clean production setup is to inject the Firebase Web App configuration during GitHub Actions instead of asking every browser to paste it. In the repository open:
+
+`Settings → Secrets and variables → Actions → New repository secret`
+
+Create these repository secrets using the values from your Firebase Web App:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_DATABASE_URL`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+Then run the GitHub Pages workflow again. Vite embeds this public Firebase client configuration in the production build and the **Crear sala** / **Unirse** buttons work directly for every visitor.
+
+Also enable:
+
+1. Firebase Authentication → Sign-in method → **Anonymous**.
+2. Realtime Database → **us-central1**.
+3. Publish the rules in `firebase.database.rules.json`.
+
+The runtime paste box remains only as a development fallback when these build values are missing.

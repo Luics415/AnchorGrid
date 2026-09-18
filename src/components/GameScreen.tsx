@@ -46,6 +46,8 @@ export function GameScreen({
   const theme = getTheme(game.themeId);
   useAppTheme(game.themeId);
   const activePlayer = game.players.find((player) => player.id === game.turn.currentPlayerId);
+  const inactivityWarning = game.turn.phase === 'warning';
+  const warningForLocalPlayer = inactivityWarning && (canControlAll || localPlayerId === game.turn.currentPlayerId);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(serverNow()), 100);
@@ -55,7 +57,7 @@ export function GameScreen({
   const remainingMs = Math.max(0, game.turn.endsAt - now);
   const seconds = Math.ceil(remainingMs / 1000);
   const progress = Math.max(0, Math.min(100, (remainingMs / game.turn.durationMs) * 100));
-  const mayDriveTimer = networkConnected && (canControlAll || isHost);
+  const mayDriveTimer = networkConnected && (canControlAll || isHost || localPlayerId === game.turn.currentPlayerId);
 
   useEffect(() => {
     if (game.status !== 'playing' || remainingMs > 0 || !mayDriveTimer || timeoutRevisionRef.current === game.revision) return;
@@ -82,19 +84,34 @@ export function GameScreen({
         </div>
       </header>
 
-      <section className={`turn-panel glass-panel ${seconds <= 5 ? 'urgent' : ''}`}>
+      <section className={`turn-panel glass-panel ${seconds <= 5 || inactivityWarning ? 'urgent' : ''} ${inactivityWarning ? 'inactivity-phase' : ''}`}>
         <div className="turn-line">
-          <div><small>Turno</small><strong>{activePlayer?.name ?? '—'}</strong></div>
-          <div className={`timer-number ${seconds <= 5 ? 'danger' : ''}`}>{seconds}</div>
+          <div><small>{inactivityWarning ? 'Aviso de inactividad' : 'Turno'}</small><strong>{activePlayer?.name ?? '—'}</strong></div>
+          <div className={`timer-number ${seconds <= 5 || inactivityWarning ? 'danger' : ''}`}>{seconds}</div>
         </div>
         <div className="timer-track"><div className="timer-fill" style={{ width: `${progress}%` }} /></div>
       </section>
+
+
+      {inactivityWarning && (
+        <section className={`inactivity-notice glass-panel ${warningForLocalPlayer ? 'for-you' : ''}`} role="status" aria-live="polite">
+          <span className="inactivity-icon" aria-hidden="true">!</span>
+          <div>
+            <strong>{warningForLocalPlayer ? '¿Sigues ahí?' : `${activePlayer?.name ?? 'El jugador'} está inactivo`}</strong>
+            <p>
+              {warningForLocalPlayer
+                ? `Tienes ${seconds} s para mover una ficha o arrastrar una pared. Si no respondes, sólo se saltará tu turno.`
+                : `Tiene ${seconds} s para volver. Si no responde, el turno continuará con el siguiente jugador.`}
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="player-grid">
         {sortedPlayers.map((player) => (
           <article key={player.id} className={`player-card glass-panel seat-${player.seat} ${player.id === game.turn.currentPlayerId ? 'active' : ''} ${player.eliminated ? 'eliminated' : ''}`}>
             <div className="player-color" />
-            <div className="player-info"><strong>{player.name}</strong><small>{player.teamId ? `Equipo ${player.teamId} · ` : ''}{player.eliminated ? 'Eliminado' : `${player.wallsRemaining} paredes`}</small></div>
+            <div className="player-info"><strong>{player.name}</strong><small>{player.teamId ? `Equipo ${player.teamId} · ` : ''}{player.eliminated ? 'Eliminado' : `${player.wallsRemaining} paredes${player.inactivityWarnings ? ` · ${player.inactivityWarnings} aviso${player.inactivityWarnings === 1 ? '' : 's'}` : ''}`}</small></div>
             {!player.connected && <span className="offline-badge">OFFLINE</span>}
           </article>
         ))}

@@ -9,6 +9,7 @@ export type ThemeId = 'aurora' | 'bloom' | 'crystal' | 'stormlight' | 'nebula' |
 export type ThemeChoice = ThemeId | 'random';
 export type WallOrientation = 'horizontal' | 'vertical';
 export type MoveKind = 'step' | 'jump' | 'diagonal-jump' | 'multi-jump';
+export type TurnPhase = 'active' | 'warning';
 
 export interface Position {
   row: number;
@@ -30,6 +31,7 @@ export interface PlayerState {
   wallsRemaining: number;
   connected: boolean;
   eliminated: boolean;
+  inactivityWarnings: number;
 }
 
 export interface Wall {
@@ -50,6 +52,7 @@ export interface TurnState {
   startedAt: number;
   endsAt: number;
   durationMs: number;
+  phase: TurnPhase;
 }
 
 export interface GameState {

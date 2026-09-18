@@ -1,6 +1,7 @@
 import type { GameMode, Seat, TeamId, ThemeId } from './types';
 
 export const TURN_DURATION_MS = 30_000;
+export const INACTIVITY_GRACE_MS = 10_000;
 
 export const SEAT_ORDER: Seat[] = ['north', 'east', 'south', 'west'];
 
@@ -31,7 +32,7 @@ export const MODE_CONFIG: Record<GameMode, {
     label: 'Todos al centro',
     shortLabel: '4P',
     requiredPlayers: 4,
-    wallsPerPlayer: 7,
+    wallsPerPlayer: 10,
     seats: ['north', 'east', 'south', 'west'],
     goal: 'center'
   },
@@ -39,7 +40,7 @@ export const MODE_CONFIG: Record<GameMode, {
     label: 'Equipos 2 vs 2',
     shortLabel: '2v2',
     requiredPlayers: 4,
-    wallsPerPlayer: 7,
+    wallsPerPlayer: 10,
     seats: ['north', 'east', 'south', 'west'],
     goal: 'teamCenter'
   }

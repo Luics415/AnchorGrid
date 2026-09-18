@@ -12,8 +12,7 @@ import {
   submitAction,
   subscribeConnectionState,
   subscribeRoom,
-  subscribeServerOffset,
-  watchHostRequests
+  subscribeServerOffset
 } from './roomService';
 import type { GameAction, GameMode, ThemeId } from '../game';
 import type { RoomRecord } from './types';
@@ -175,16 +174,6 @@ export function useRoomSession() {
     if (hostPlayer?.connected !== false) return;
     attemptHostMigration(room, serverNow()).catch(() => undefined);
   }, [room, uid, serverNow]);
-
-  useEffect(() => {
-    if (!room?.code || !isHost) return;
-    return watchHostRequests(
-      room.code,
-      serverNow,
-      () => roomRef.current?.authority.hostUid === uid,
-      () => roomRef.current?.authority.epoch
-    );
-  }, [room?.code, isHost, uid, serverNow]);
 
   return {
     firebaseConfigured,

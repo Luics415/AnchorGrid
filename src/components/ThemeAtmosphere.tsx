@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function ThemeAtmosphere({ themeId, compact = false }: Props) {
-  const count = compact ? 5 : 10;
+  const count = compact ? 4 : 8;
   return (
     <div className={`theme-atmosphere atmosphere-${themeId} ${compact ? 'compact' : ''}`} aria-hidden="true">
       {Array.from({ length: count }, (_, index) => (
@@ -19,7 +19,7 @@ export function ThemeAtmosphere({ themeId, compact = false }: Props) {
             '--fx-index': index,
             left: `${3 + (index * 7.1) % 91}%`,
             top: `${4 + (index * 11.7) % 88}%`,
-            animationDelay: `${-(index * 0.37)}s`
+            animationDelay: `${-(index * 1.9)}s`
           } as FxStyle}
         />
       ))}

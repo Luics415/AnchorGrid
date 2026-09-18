@@ -131,7 +131,12 @@ describe('walls and path protection', () => {
   });
 });
 
-describe('turns and timeout', () => {
+describe('turns, walls and inactivity', () => {
+  it('starts every mode with 10 walls per player', () => {
+    expect(duel().players.every((player) => player.wallsRemaining === 10)).toBe(true);
+    expect(four().players.every((player) => player.wallsRemaining === 10)).toBe(true);
+  });
+
   it('changes turn after a valid move', () => {
     const state = duel();
     const next = applyGameAction(state, {
@@ -141,29 +146,38 @@ describe('turns and timeout', () => {
     }, 2_000);
 
     expect(next.turn.currentPlayerId).toBe('b');
+    expect(next.turn.phase).toBe('active');
     expect(next.revision).toBe(2);
   });
 
-  it('loses the duel when the clock expires', () => {
+  it('shows an inactivity warning instead of eliminating the player at 30 seconds', () => {
     const state = duel();
     const next = applyGameAction(state, {
       type: 'TIMEOUT',
       playerId: 'a'
     }, 31_001);
 
-    expect(next.status).toBe('finished');
-    expect(next.winnerPlayerId).toBe('b');
+    expect(next.status).toBe('playing');
+    expect(next.turn.currentPlayerId).toBe('a');
+    expect(next.turn.phase).toBe('warning');
+    expect(next.players.find((player) => player.id === 'a')?.eliminated).toBe(false);
+    expect(next.players.find((player) => player.id === 'a')?.inactivityWarnings).toBe(1);
   });
 
-  it('eliminates only the timed-out player in four-player mode', () => {
-    const state = four();
-    const next = applyGameAction(state, {
+  it('skips only the inactive turn after the warning grace period', () => {
+    const state = duel();
+    const warned = applyGameAction(state, {
       type: 'TIMEOUT',
-      playerId: 'n'
+      playerId: 'a'
     }, 31_001);
+    const skipped = applyGameAction(warned, {
+      type: 'TIMEOUT',
+      playerId: 'a'
+    }, warned.turn.endsAt + 1);
 
-    expect(next.players.find((player) => player.id === 'n')?.eliminated).toBe(true);
-    expect(next.status).toBe('playing');
-    expect(next.turn.currentPlayerId).toBe('e');
+    expect(skipped.status).toBe('playing');
+    expect(skipped.turn.currentPlayerId).toBe('b');
+    expect(skipped.turn.phase).toBe('active');
+    expect(skipped.players.find((player) => player.id === 'a')?.eliminated).toBe(false);
   });
 });

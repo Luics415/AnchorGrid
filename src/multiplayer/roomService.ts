@@ -1,11 +1,8 @@
 import {
   get,
-  onChildAdded,
   onDisconnect,
   onValue,
-  push,
   ref,
-  remove,
   runTransaction,
   serverTimestamp,
   update
@@ -21,7 +18,7 @@ import {
   type ThemeId
 } from '../game';
 import { ensureAnonymousUser, getFirebase } from './firebase';
-import type { ActionRequest, RoomPlayer, RoomRecord } from './types';
+import type { RoomPlayer, RoomRecord } from './types';
 import { getNextConnectedHost } from './hostElection';
 
 const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
@@ -36,9 +33,14 @@ function normalizeRoom(code: string, value: Omit<RoomRecord, 'code'> | null): Ro
   if (room.game) {
     room.game = {
       ...room.game,
+      turn: {
+        ...room.game.turn,
+        phase: room.game.turn.phase ?? 'active'
+      },
       players: room.game.players.map((player) => ({
         ...player,
-        connected: room.players?.[player.id]?.connected ?? false
+        connected: room.players?.[player.id]?.connected ?? false,
+        inactivityWarnings: player.inactivityWarnings ?? 0
       }))
     };
   }
@@ -125,7 +127,6 @@ export async function createRoom(input: {
       },
       players: { [user.uid]: player },
       game: null,
-      actionRequests: {}
     };
 
     const result = await runTransaction(roomRef(code), (current) => {
@@ -254,8 +255,7 @@ export async function startRoom(code: string, serverNow: number) {
   await update(roomRef(code), {
     game,
     'meta/status': 'playing',
-    'meta/updatedAt': serverNow,
-    actionRequests: {}
+    'meta/updatedAt': serverNow
   });
 }
 
@@ -284,8 +284,7 @@ export async function restartRoom(code: string, serverNow: number) {
   await update(roomRef(code), {
     game,
     'meta/status': 'playing',
-    'meta/updatedAt': serverNow,
-    actionRequests: {}
+    'meta/updatedAt': serverNow
   });
 }
 
@@ -298,58 +297,22 @@ export async function submitAction(
   const user = await ensureAnonymousUser();
   if (!room.game) return;
 
-  if (room.authority.hostUid === user.uid) {
-    await commitHostAction(code, action, room.game.revision, serverNow);
-    return;
+  // Normal moves and walls are committed directly by the player through an
+  // RTDB transaction. This removes the old player -> host -> database relay
+  // and noticeably lowers cross-country input latency. The host remains the
+  // watchdog for timeouts and room authority/migration.
+  const isOwnAction = action.playerId === user.uid;
+  const isHostTimeout = action.type === 'TIMEOUT' && room.authority.hostUid === user.uid;
+  if (!isOwnAction && !isHostTimeout) {
+    throw new Error('Esta jugada no pertenece a este dispositivo.');
   }
 
-  const request: ActionRequest = {
-    uid: user.uid,
-    expectedRevision: room.game.revision,
-    authorityEpoch: room.authority.epoch,
-    action,
-    createdAt: serverTimestamp()
-  };
-
-  await push(ref(getFirebase().database, `rooms/${code}/actionRequests`), request);
-}
-
-export async function commitHostAction(
-  code: string,
-  action: GameAction,
-  expectedRevision: number,
-  serverNow: number
-) {
-  const user = await ensureAnonymousUser();
-  const room = await getRoom(code);
-  if (!room || room.authority.hostUid !== user.uid) return;
-
+  const expectedRevision = room.game.revision;
   await runTransaction(ref(getFirebase().database, `rooms/${code}/game`), (game) => {
     if (!game || game.revision !== expectedRevision) return game;
+    if (action.type !== 'TIMEOUT' && game.turn?.currentPlayerId !== user.uid) return game;
+    if (action.type === 'TIMEOUT' && game.turn?.currentPlayerId !== action.playerId) return game;
     return applyGameAction(game, action, serverNow);
-  }, { applyLocally: false });
-}
-
-export function watchHostRequests(
-  code: string,
-  getNow: () => number,
-  isStillHost: () => boolean,
-  getEpoch: () => number | undefined
-) {
-  const requestsRef = ref(getFirebase().database, `rooms/${code}/actionRequests`);
-
-  return onChildAdded(requestsRef, async (snapshot) => {
-    if (!isStillHost()) return;
-
-    const request = snapshot.val() as ActionRequest;
-    try {
-      const epochMatches = request.authorityEpoch === undefined || request.authorityEpoch === getEpoch();
-      if (epochMatches && request?.uid && request.action?.playerId === request.uid) {
-        await commitHostAction(code, request.action, request.expectedRevision, getNow());
-      }
-    } finally {
-      await remove(snapshot.ref);
-    }
   });
 }
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0
+- 10 walls per player in 1v1, 4P and 2v2.
+- 30 s timeout now triggers an inactivity warning instead of elimination/disconnection.
+- 10 s grace period; if the player remains inactive, only that turn is skipped.
+- Direct Realtime Database transactions for player moves/walls to reduce Mexico ↔ Colombia latency.
+- Host remains responsible for room authority, migration and inactivity watchdog.
+- Theme animations are slower, smoother, dimmer and GPU-friendly.
+- GitHub Pages workflow no longer tries to enable Pages after the site already exists.
+
+# Changelog
+
 ## v0.5.0 — AnchorGrid
 
 - Cambio definitivo de nombre a **AnchorGrid** y URL `https://luics415.github.io/AnchorGrid/`.
