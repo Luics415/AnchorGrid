@@ -20,6 +20,7 @@ import {
 interface Props {
   game: GameState;
   localPlayerId?: string | null;
+  controllablePlayerIds?: string[];
   canControlAll?: boolean;
   onAction: (action: GameAction) => void | Promise<void>;
 }
@@ -62,6 +63,7 @@ function samePreview(a: WallPreview | null, b: WallPreview | null) {
 export const GameBoard = memo(function GameBoard({
   game,
   localPlayerId,
+  controllablePlayerIds = [],
   canControlAll = false,
   onAction
 }: Props) {
@@ -78,7 +80,11 @@ export const GameBoard = memo(function GameBoard({
   const canAct = Boolean(
     activePlayer &&
     !activePlayer.eliminated &&
-    (canControlAll || localPlayerId === activePlayer.id)
+    (
+      canControlAll ||
+      localPlayerId === activePlayer.id ||
+      controllablePlayerIds.includes(activePlayer.id)
+    )
   );
 
   const legalMoves = useMemo(

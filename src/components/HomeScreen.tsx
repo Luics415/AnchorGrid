@@ -30,6 +30,8 @@ interface Props {
   onJoinOnline: () => void;
   onStartLocal: () => void;
   onStartAi: () => void;
+  nearbyNativeAvailable: boolean;
+  onCreateNearby: () => void;
 }
 
 export function HomeScreen({
@@ -43,7 +45,9 @@ export function HomeScreen({
   onCreateOnline,
   onJoinOnline,
   onStartLocal,
-  onStartAi
+  onStartAi,
+  nearbyNativeAvailable,
+  onCreateNearby
 }: Props) {
   const {
     nickname,
@@ -371,6 +375,54 @@ export function HomeScreen({
               onClick={onStartAi}
             >
               Jugar contra la IA
+            </button>
+          </div>
+        </section>
+
+        <section className="glass-panel setup-card wide-card nearby-play-card">
+          <div className="nearby-play-heading">
+            <div>
+              <p className="eyebrow">08 · JUEGO CERCANO</p>
+              <h2>Sala pública alrededor de ti</h2>
+              <p className="muted">
+                Sin código ni invitación. Un iPhone o Android crea la sala y los
+                dispositivos cercanos pueden encontrarla. Un mismo dispositivo
+                puede controlar uno o varios jugadores.
+              </p>
+            </div>
+
+            <span className={`nearby-capability-badge ${nearbyNativeAvailable ? 'ready' : ''}`}>
+              {nearbyNativeAvailable
+                ? 'iPhone / Android listo'
+                : 'Preparando app móvil'}
+            </span>
+          </div>
+
+          <div className="nearby-play-features">
+            <span>Sin código</span>
+            <span>Sin enlace</span>
+            <span>1–4 dispositivos</span>
+            <span>Asientos compartidos</span>
+          </div>
+
+          <div className="nearby-play-actions">
+            <div>
+              <small>Configuración actual</small>
+              <strong>
+                {MODE_CONFIG[mode].shortLabel} · {selectedThemeName}
+              </strong>
+              <p>
+                El host siempre puede iniciar. Los asientos que falten se
+                completan en su dispositivo.
+              </p>
+            </div>
+
+            <button
+              className="primary-button nearby-create-button"
+              disabled={nickname.trim().length < 2}
+              onClick={onCreateNearby}
+            >
+              Crear sala pública
             </button>
           </div>
         </section>

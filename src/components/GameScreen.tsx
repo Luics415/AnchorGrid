@@ -20,6 +20,7 @@ interface Props {
   game: GameState;
   roomCode?: string;
   localPlayerId?: string | null;
+  controllablePlayerIds?: string[];
   canControlAll?: boolean;
   isHost?: boolean;
   authorityEpoch?: number;
@@ -35,6 +36,7 @@ interface Props {
   requiredPlayers?: number;
   aiThinking?: boolean;
   aiLabel?: string;
+  sessionLabel?: string;
   reactions?: ReactionEvent[];
   onReact?: (emoji: ReactionEmoji) => void | Promise<void>;
 }
@@ -55,6 +57,7 @@ export function GameScreen({
   game,
   roomCode,
   localPlayerId,
+  controllablePlayerIds = [],
   canControlAll = false,
   isHost = false,
   authorityEpoch,
@@ -70,6 +73,7 @@ export function GameScreen({
   requiredPlayers,
   aiThinking = false,
   aiLabel,
+  sessionLabel,
   reactions = [],
   onReact
 }: Props) {
@@ -82,17 +86,21 @@ export function GameScreen({
   );
 
   const inactivityWarning = game.turn.phase === 'warning';
+  const controlsCurrentPlayer =
+    canControlAll ||
+    localPlayerId === game.turn.currentPlayerId ||
+    controllablePlayerIds.includes(game.turn.currentPlayerId);
+
   const warningForLocalPlayer =
     inactivityWarning &&
-    (canControlAll || localPlayerId === game.turn.currentPlayerId);
+    controlsCurrentPlayer;
 
   const mayDriveTimer =
     networkConnected &&
     (
-      canControlAll ||
+      controlsCurrentPlayer ||
       Boolean(aiLabel) ||
-      isHost ||
-      localPlayerId === game.turn.currentPlayerId
+      isHost
     );
 
   const sortedPlayers = useMemo(
@@ -134,7 +142,7 @@ export function GameScreen({
               ? `SALA ${roomCode}`
               : aiLabel
                 ? 'VS IA'
-                : 'JUEGO LOCAL'}
+                : sessionLabel ?? 'JUEGO LOCAL'}
           </p>
           <h1>{MODE_CONFIG[game.mode].label}</h1>
         </div>
@@ -204,6 +212,7 @@ export function GameScreen({
       <GameBoard
         game={game}
         localPlayerId={localPlayerId}
+        controllablePlayerIds={controllablePlayerIds}
         canControlAll={canControlAll}
         onAction={onAction}
       />

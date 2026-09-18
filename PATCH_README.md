@@ -1,82 +1,85 @@
-# AnchorGrid v1.0.0-alpha.2 — IA + Performance + PWA
+# AnchorGrid v1.0.0-alpha.3
 
-Este ZIP es **acumulativo**.
+Este parche se instala **encima de v1.0.0-alpha.2**, que es la versión que estás
+probando ahora.
 
-Si todavía no instalaste `v1.0.0-alpha.1`, NO necesitas instalarlo primero.
-Aplica únicamente este parche encima de tu AnchorGrid v0.8.2 actual.
+## 1. Puntos de movimiento
 
-## Incluye todo alpha.1
+Los puntos legales ahora tienen mucho más contraste:
 
-- VS IA en 1v1, 4P y 2v2.
-- Fácil / Normal / Difícil / Maestro.
-- Minimax/alpha-beta para duelo y evaluación por equipos.
-- MaxN para 4 jugadores.
-- IA ejecutándose en Web Worker.
-- Performance Pass siempre en AUTO.
-- Optimización del arrastre de paredes.
-- Temporizador aislado del tablero.
-- BFS/pathfinding optimizado.
-- Atmósferas adaptativas.
-- Reacciones 😹 😸 🙀 😿 😾 😼.
+- núcleo magenta;
+- borde blanco;
+- anillo azul oscuro;
+- halo cian;
+- saltos y diagonales conservan formas diferenciadas.
 
-## Nuevo en alpha.2
+El objetivo es que se distingan incluso en Crystal, Bloom y los fondos más claros.
 
-La bienvenida incorpora instalación como aplicación:
+## 2. Juego Cercano — primera integración
 
-### Android / Chromium
-Cuando el navegador entrega `beforeinstallprompt`, aparece:
+Se agrega el flujo de **Sala Cercana Pública**.
 
-`Instalar AnchorGrid`
+No utiliza el flujo de Firebase de las salas privadas:
 
-El botón abre el prompt nativo del sistema.
+- no hay código de 4 dígitos;
+- no hay enlace de invitación;
+- no hay botón Compartir;
+- la sala queda esperando dispositivos cercanos.
 
-### iPhone / iPad
-Se muestra:
+### Asientos por dispositivo
 
-`Instalar en iPhone / iPad`
+Un dispositivo puede controlar más de un asiento. Esto evita obligar a que
+"1 dispositivo = 1 jugador".
 
-y una guía integrada:
+Ejemplos válidos:
 
-1. Safari → Compartir.
-2. Agregar a pantalla de inicio.
-3. Abrir AnchorGrid desde el nuevo icono.
+- 4P con 3 dispositivos:
+  - dispositivo A → Norte + Oeste
+  - dispositivo B → Este
+  - dispositivo C → Sur
 
-### Importante
-Cuando AnchorGrid ya se ejecuta desde la aplicación instalada:
+- 2v2 con 2 dispositivos:
+  - dispositivo A → Morado (Norte + Sur)
+  - dispositivo B → Naranja (Este + Oeste)
 
-- se detecta `display-mode: standalone`;
-- en iOS también se comprueba `navigator.standalone`;
-- la opción **Instalar AnchorGrid NO vuelve a aparecer**.
+- 1 dispositivo:
+  - puede controlar todos los asientos.
 
-La PWA sigue siendo opcional. El juego web continúa funcionando sin instalar.
+### Inicio siempre disponible
 
-## Instalación
+El host puede pulsar **Iniciar partida** aunque falten asientos.
 
-1. Descomprime este ZIP.
-2. Copia su contenido encima de la raíz de tu proyecto AnchorGrid.
-3. Acepta reemplazar archivos.
-4. No borres `.git`, `.env`, `node_modules` ni tus secretos Firebase.
+Antes de empezar, AnchorGrid muestra un aviso indicando qué asientos vacíos se
+controlarán desde el host. Así no se inicia por accidente una configuración distinta
+a la esperada.
 
-Después ejecuta:
+## Estado de iPhone/Android
+
+La capa de sala, reparto de asientos y contrato de transporte ya están preparados.
+En navegador funciona como prueba local de la lógica.
+
+El descubrimiento físico real iPhone ↔ Android todavía necesita el bridge nativo
+Nearby Connections. Se mantiene separado del motor, Firebase, Local e IA.
+
+## Archivos
+
+El ZIP contiene sólo los archivos nuevos/modificados de alpha.3.
+
+## Verificación
+
+Después de copiar encima del proyecto:
 
 ```powershell
 npm test
 npm run build
 ```
 
-Si todo pasa:
+Si todo termina correctamente:
 
 ```powershell
 git add -A
-git commit -m "feat: AnchorGrid 1.0 alpha 2 AI performance and PWA install"
+git commit -m "feat: AnchorGrid alpha 3 nearby public lobby and movement visibility"
 git push
 ```
 
-## Caché
-
-El Service Worker cambia a:
-
-`anchorgrid-v1.0.0-alpha.2`
-
-Si GitHub Pages todavía muestra una versión anterior después del despliegue,
-usa `Ctrl + F5` una vez o cierra completamente la PWA/navegador y vuelve a abrirlo.
+El Service Worker cambia a `anchorgrid-v1.0.0-alpha.3`.

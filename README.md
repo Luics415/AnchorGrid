@@ -4,6 +4,34 @@
 
 # AnchorGrid
 
+
+## v1.0.0-alpha.3 — movimiento visible + sala cercana pública
+
+- Los indicadores de movimiento ahora usan un núcleo magenta/azul con borde blanco,
+  anillo oscuro y halo cian. Permanecen legibles en Aurora, Bloom, Crystal,
+  Stormlight, Nebula y Garden Pulse.
+- Se inicia la arquitectura de **Juego Cercano** para iPhone/Android.
+- La sala cercana es pública para dispositivos físicamente próximos:
+  - no muestra código de 4 dígitos;
+  - no muestra enlace de invitación;
+  - espera dispositivos cercanos.
+- La unidad de conexión es el **dispositivo**, pero cada dispositivo puede controlar
+  uno o varios asientos.
+- El host conserva siempre el botón **Iniciar partida**.
+- Si faltan asientos al iniciar, AnchorGrid muestra exactamente cuáles se jugarán
+  desde el dispositivo host antes de continuar.
+- Esto permite configuraciones híbridas como:
+  - 4P con tres dispositivos y dos jugadores en uno de ellos;
+  - 2v2 con un dispositivo controlando Morado (Norte + Sur) y otro Naranja
+    (Este + Oeste);
+  - todos los jugadores compartiendo una sola pantalla.
+- Se agrega el contrato `AnchorGridNearby` para conectar posteriormente el puente
+  nativo Nearby Connections de iOS/Android sin modificar el motor del juego.
+
+> En esta alpha, el lobby y reparto de asientos pueden probarse desde navegador.
+> El descubrimiento físico real entre iPhone y Android requiere todavía enlazar
+> el bridge nativo de la futura app móvil.
+
 ## v1.0.0-alpha.2 — instalación como aplicación
 
 La bienvenida puede ofrecer **Instalar AnchorGrid** cuando el navegador admite

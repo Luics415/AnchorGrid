@@ -19,8 +19,21 @@ import { HomeScreen } from './components/HomeScreen';
 import { LobbyScreen } from './components/LobbyScreen';
 import { GameScreen } from './components/GameScreen';
 import { WelcomeScreen } from './components/WelcomeScreen';
+import { NearbyLobbyScreen } from './components/NearbyLobbyScreen';
 import { usePreferences } from './store/usePreferences';
 import { useRoomSession } from './multiplayer/useRoomSession';
+import {
+  advertiseNearbyLobby,
+  buildNearbyGamePlan,
+  createNearbyLobby,
+  getOrCreateNearbyDeviceId,
+  nearbyNativeAvailable,
+  nearbyPlatform,
+  stopNearbyBridge,
+  toggleLocalNearbySeat,
+  updateLocalNearbySeatName,
+  type NearbyLobbyState
+} from './nearby';
 
 function initialRoomCode() {
   return new URLSearchParams(window.location.search)
@@ -55,6 +68,9 @@ export default function App() {
   const [localGame, setLocalGame] = useState<GameState | null>(null);
   const [aiGame, setAiGame] = useState<GameState | null>(null);
   const [aiThinking, setAiThinking] = useState(false);
+  const [nearbyLobby, setNearbyLobby] = useState<NearbyLobbyState | null>(null);
+  const [nearbyGame, setNearbyGame] = useState<GameState | null>(null);
+  const [nearbyControlIds, setNearbyControlIds] = useState<string[]>([]);
   const [welcomeOpen, setWelcomeOpen] = useState(
     () => sessionStorage.getItem('anchorgrid-welcome') !== '1'
   );
@@ -148,6 +164,78 @@ export default function App() {
     preferences.nickname,
     preferences.themeChoice
   ]);
+
+  const startNearbyLobby = useCallback(() => {
+    const name = preferences.nickname.trim();
+    if (name.length < 2) return;
+
+    const lobby = createNearbyLobby({
+      mode: preferences.mode,
+      themeId: resolveTheme(preferences.themeChoice),
+      deviceId: getOrCreateNearbyDeviceId(),
+      deviceName: name,
+      platform: nearbyPlatform()
+    });
+
+    setLocalGame(null);
+    setAiGame(null);
+    setNearbyGame(null);
+    setNearbyControlIds([]);
+    setNearbyLobby(lobby);
+
+    void advertiseNearbyLobby(lobby).catch(() => undefined);
+  }, [
+    preferences.mode,
+    preferences.nickname,
+    preferences.themeChoice
+  ]);
+
+  const startNearbyGame = useCallback(() => {
+    setNearbyLobby((current) => {
+      if (!current) return current;
+
+      const plan = buildNearbyGamePlan(current);
+
+      setNearbyControlIds(plan.localPlayerIds);
+      setNearbyGame(createGameState({
+        mode: plan.lobby.mode,
+        themeId: plan.lobby.themeId,
+        players: plan.players
+      }));
+
+      return plan.lobby;
+    });
+  }, []);
+
+  const nearbyAction = useCallback((action: GameAction) => {
+    setNearbyGame((current) => {
+      if (!current) return current;
+      if (
+        action.type !== 'TIMEOUT' &&
+        !nearbyControlIds.includes(action.playerId)
+      ) {
+        return current;
+      }
+
+      return applyGameAction(current, action, Date.now());
+    });
+  }, [nearbyControlIds]);
+
+  const restartNearby = useCallback(() => {
+    setNearbyGame((current) => {
+      if (!current) return current;
+
+      return createGameState({
+        mode: current.mode,
+        themeId: current.themeId,
+        players: current.players.map((player) => ({
+          id: player.id,
+          name: player.name,
+          seat: player.seat
+        }))
+      });
+    });
+  }, []);
 
   const localAction = useCallback((action: GameAction) => {
     setLocalGame((current) => (
@@ -362,6 +450,59 @@ export default function App() {
     );
   }
 
+  if (nearbyGame) {
+    return (
+      <GameScreen
+        game={nearbyGame}
+        controllablePlayerIds={nearbyControlIds}
+        isHost
+        networkConnected
+        serverNow={() => Date.now()}
+        onAction={nearbyAction}
+        onLeave={() => {
+          setNearbyGame(null);
+          setNearbyLobby(null);
+          setNearbyControlIds([]);
+          void stopNearbyBridge().catch(() => undefined);
+        }}
+        onRematch={restartNearby}
+        sessionLabel="JUEGO CERCANO"
+      />
+    );
+  }
+
+  if (nearbyLobby) {
+    return (
+      <NearbyLobbyScreen
+        lobby={nearbyLobby}
+        nativeAvailable={nearbyNativeAvailable()}
+        onChange={setNearbyLobby}
+        onToggleSeat={(seat) => {
+          setNearbyLobby((current) => current
+            ? toggleLocalNearbySeat(
+                current,
+                seat,
+                `${preferences.nickname.trim()} · ${SEAT_NAME[seat]}`
+              )
+            : current
+          );
+        }}
+        onRenameSeat={(seat, value) => {
+          setNearbyLobby((current) => current
+            ? updateLocalNearbySeatName(current, seat, value)
+            : current
+          );
+        }}
+        onStart={startNearbyGame}
+        onLeave={() => {
+          setNearbyLobby(null);
+          setNearbyControlIds([]);
+          void stopNearbyBridge().catch(() => undefined);
+        }}
+      />
+    );
+  }
+
   if (online.room?.game) {
     return (
       <GameScreen
@@ -445,6 +586,8 @@ export default function App() {
       onJoinOnline={joinOnline}
       onStartLocal={startLocal}
       onStartAi={startAi}
+      nearbyNativeAvailable={nearbyNativeAvailable()}
+      onCreateNearby={startNearbyLobby}
     />
   );
 }
