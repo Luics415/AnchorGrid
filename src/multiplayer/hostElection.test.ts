@@ -16,7 +16,6 @@ function room(connectivity: Record<string, boolean>): RoomRecord {
     authority: { hostUid: 'n', epoch: 3, claimedAt: 1 },
     players,
     game: null,
-    actionRequests: {}
   };
 }
 
