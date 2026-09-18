@@ -4,96 +4,94 @@
 
 # AnchorGrid
 
-**Versión actual: v0.5.0**
+**Versión actual: v0.8.1**
 
-AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, pensado para **salas privadas** entre amigos. No hay matchmaking global ni salas públicas: se crea una sala, se obtiene un código de 4 dígitos y se comparte el enlace.
+AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, diseñado para jugar de forma **local** o mediante **salas privadas** entre amigos. No hay matchmaking global ni salas públicas: el host crea una sala, recibe un código de 4 dígitos y comparte el enlace.
 
-La versión objetivo para GitHub Pages es:
+**Sitio:** `https://luics415.github.io/AnchorGrid/`
+
+## Novedades v0.8.1
+
+- La sección **Atmósferas** fue rediseñada con previews más grandes, animados y fáciles de distinguir.
+- Los seis temas ahora tienen movimiento continuo y propio:
+  - **Aurora:** manchas rosa/cian que recorren lentamente el fondo y cambian de tamaño.
+  - **Bloom:** lluvia continua de pétalos con distintas trayectorias y velocidades.
+  - **Crystal:** fragmentos fríos que flotan y cambian sutilmente de brillo.
+  - **Stormlight:** grandes tiras luminosas que se encienden y apagan en ciclos largos.
+  - **Nebula:** nubes suaves y polvo estelar claramente visible.
+  - **Garden Pulse:** ondas expansivas inspiradas en gotas de lluvia hasta desvanecerse.
+- El tablero es menos transparente para conservar legibilidad sobre fondos animados.
+- El final de partida en **escritorio** tiene una presentación más amplia y protagonista; móvil conserva su composición compacta.
+- En **2v2** la identidad deja de depender de los cuatro colores individuales:
+  - **Equipo Morado:** Norte + Sur.
+  - **Equipo Naranja:** Este + Oeste.
+  - Fichas, paredes, indicadores y etiquetas respetan el color del equipo.
+- **Juego Local** ahora tiene una sección propia en el menú principal, al mismo nivel que las salas online.
+- El texto “Probar partida local” fue reemplazado por **Iniciar partida local**.
+- Service Worker actualizado a `anchorgrid-v0.8.1` para evitar conservar estilos antiguos tras desplegar.
+
+## Modos
+
+El tablero es siempre **11×11** y todos comienzan con **10 paredes por jugador**.
+
+- **Duelo 1v1:** Norte vs Sur. Gana quien llegue primero al borde opuesto.
+- **Todos al centro (4P):** cuatro jugadores compiten por alcanzar `(5,5)`.
+- **Equipos 2v2:** Norte + Sur (Morado) contra Este + Oeste (Naranja). Gana el equipo cuyo primer integrante alcance el centro.
+
+## Reglas principales
+
+- Una acción por turno: mover **o** colocar una pared.
+- Movimiento ortogonal.
+- Salto automático sobre fichas adyacentes.
+- Salto diagonal cuando una pared o borde impide saltar recto.
+- Paredes horizontales y verticales de dos segmentos.
+- Sin cruces ni solapamientos.
+- BFS tras cada intento de pared: **ningún jugador activo puede quedar sin ruta a su objetivo**.
+- En modos de centro, la meta `(5,5)` jamás puede quedar completamente bloqueada.
+- Cada turno tiene 30 segundos.
+- Al agotarse el tiempo aparece un aviso de inactividad y un periodo de gracia; si tampoco hay respuesta, se salta únicamente ese turno.
+
+## Juego local
+
+El menú principal incluye ahora un bloque dedicado a **Juego Local**. Usa el modo y atmósfera elegidos arriba y funciona sin Firebase ni sala online.
+
+Incluye:
+
+- 1v1, 4P y 2v2.
+- Tablero 11×11.
+- 10 paredes por jugador.
+- Temporizador e inactividad.
+- Revancha inmediata al terminar.
+
+## Salas privadas online
+
+La capa online utiliza **Firebase Anonymous Authentication + Realtime Database**.
+
+Flujo:
+
+1. El host pulsa **Crear sala**.
+2. AnchorGrid genera un código de 4 dígitos.
+3. La URL adopta la forma `?room=4826`.
+4. Los invitados entran con el enlace o escribiendo los 4 dígitos.
+5. El lobby muestra jugadores conectados, desconectados y asientos vacíos.
+6. El host inicia cuando estén todos los jugadores requeridos.
+7. Si el host cae, otro cliente conectado puede asumir autoridad sin destruir la partida.
+
+Al finalizar una partida online están disponibles:
+
+- **Regresar al lobby**.
+- **Menú principal**.
+- **Revancha X/N**, que inicia automáticamente cuando todos votan.
+
+## Atmósferas
+
+La identidad visual usa como fondo base `#B6DDFE` y la paleta:
 
 ```text
-https://luics415.github.io/AnchorGrid/
+#344D75  #4A7CA1  #637D98  #B6DDFE  #BAF0FA  #F7C5EB  #D069B8
 ```
 
-## AnchorGrid v0.5
-
-- Nueva pantalla de **bienvenida** con el emblema de ancla y firma Luics415.
-- Ancla, firma y banner integrados en `public/brand/`.
-- Favicon y PWA icons derivados del ancla.
-- Metadatos Open Graph preparados para la portada social del repositorio/sitio.
-- Las cuatro fichas conservan colores competitivos fuertes en todos los temas:
-  - **Norte:** azul, ancla orientada 180°.
-  - **Este:** verde, ancla orientada 90°.
-  - **Sur:** rojo, ancla orientada 0°.
-  - **Oeste:** amarillo, ancla orientada -90°.
-- El movimiento queda siempre activo: toca una casilla legal para mover.
-- Las paredes ya no usan selector de herramienta: se arrastran desde el dock y se sueltan sobre un anclaje válido.
-- Las paredes conservan el color de quien las colocó.
-- Los efectos de Aurora, Bloom, Crystal, Stormlight, Nebula y Garden Pulse se mantienen, pero ahora están más definidos, menos luminosos y siempre detrás de la interfaz/tablero.
-
-## Núcleo del juego
-
-El tablero es siempre **11×11**. Las paredes ocupan dos segmentos y el motor nunca permite una colocación que deje a un jugador activo sin ruta válida a su meta.
-
-### Modos
-
-- **Duelo 1v1:** Norte vs Sur. Gana quien alcance primero el borde opuesto. 10 paredes por jugador.
-- **Todos al centro (4P):** Norte, Este, Sur y Oeste compiten por `(5,5)`. 7 paredes por jugador.
-- **Equipos 2v2:** Norte + Sur contra Este + Oeste. Gana el equipo cuyo primer integrante alcance el centro. 7 paredes por jugador.
-
-Todos los turnos duran **30 segundos**. En 1v1, agotar el tiempo pierde la partida. En 4P y 2v2, la ficha queda eliminada y sus paredes permanecen.
-
-## Reglas implementadas
-
-- Movimiento ortogonal.
-- Salto automático sobre una ficha adyacente.
-- Salto diagonal si detrás de la ficha hay pared o borde.
-- Cadena de salto cuando varias fichas quedan alineadas en modos de cuatro jugadores.
-- Nunca dos fichas en la misma casilla.
-- Paredes horizontales/verticales con anclajes 10×10.
-- Sin solapamientos parciales.
-- Sin cruces de paredes.
-- BFS después de cada intento de pared para garantizar una ruta válida para cada jugador activo.
-- La meta central **jamás puede quedar completamente sellada**.
-- Temporizador compartido de 30 segundos por turno.
-
-## Salas privadas y host migration
-
-La capa online utiliza Firebase Anonymous Auth + Realtime Database.
-
-- Código de 4 dígitos.
-- Invitación directa mediante `?room=4826`.
-- Identidad anónima: no se pide correo ni contraseña.
-- Presencia y reconexión.
-- Reserva del mismo asiento al recargar.
-- `revision` para descartar acciones atrasadas.
-- `authority.epoch` para impedir que un host antiguo recupere autoridad después de una migración.
-- Si el host se desconecta, el siguiente jugador conectado reclama el host mediante una transacción atómica y **la partida continúa**.
-
-## Temas
-
-El fondo base siempre parte de `#B6DDFE`.
-
-- **Aurora:** cintas cian/magenta suaves.
-- **Bloom:** pétalos y vidrio floral.
-- **Crystal:** facetas y prismas.
-- **Stormlight:** pulsos eléctricos contenidos.
-- **Nebula:** polvo estelar y profundidad azul.
-- **Garden Pulse:** ondas orgánicas y cian acuoso.
-- **Aleatorio:** el tema se decide al crear la partida.
-
-Los efectos ambientales son deliberadamente secundarios: el tablero, las fichas y las paredes siempre conservan mayor contraste y prioridad visual.
-
-## Multiplataforma / PWA
-
-Preparado para:
-
-- Android.
-- iPhone/iPad.
-- Windows/macOS/Linux mediante navegador.
-- Pantallas táctiles, mouse y trackpad.
-- Retrato y paisaje.
-- Safe areas/notch.
-- Instalación PWA.
+Los efectos se mantienen detrás del tablero y de la interfaz. En pantallas pequeñas se reduce automáticamente el número de elementos ambientales para conservar rendimiento.
 
 ## Stack
 
@@ -106,80 +104,42 @@ Preparado para:
 - Vitest
 - GitHub Pages + GitHub Actions
 
-## Arranque local
+## Desarrollo local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Para abrirlo también desde teléfonos de la misma Wi-Fi:
+Para probar desde otros dispositivos en la misma Wi-Fi:
 
 ```bash
 npm run dev -- --host
 ```
 
-Vite mostrará una URL de red como `http://192.168.x.x:5173`.
+## Verificación antes de publicar
 
-## Activar multijugador
-
-Consulta [`FIREBASE_SETUP.md`](./FIREBASE_SETUP.md). Resumen:
-
-1. Crear un proyecto en Firebase.
-2. Activar **Authentication → Anonymous**.
-3. Crear **Realtime Database**.
-4. Añadir `luics415.github.io` a los dominios autorizados de Firebase Authentication.
-5. Copiar `.env.example` a `.env` para desarrollo local.
-6. Añadir las mismas variables como GitHub Actions Secrets para producción.
-
-## Publicar en GitHub Pages
-
-Repositorio oficial: **`Luics415/AnchorGrid`**.
-
-Consulta [`GITHUB_PAGES_DEPLOY.md`](./GITHUB_PAGES_DEPLOY.md) para el despliegue completo. El workflow `.github/workflows/deploy-pages.yml` ejecuta:
-
-```text
-npm install
+```bash
 npm test
 npm run build
-GitHub Pages deploy
 ```
 
-Después de la primera publicación, las invitaciones tendrán esta forma:
+Después:
 
-```text
-https://luics415.github.io/AnchorGrid/?room=4826
+```bash
+git add -A
+git commit -m "feat: AnchorGrid v0.8.1 visual polish and local mode"
+git push
 ```
 
-## Pruebas entre dispositivos
+GitHub Actions publicará `dist` en GitHub Pages.
 
-Consulta [`MULTIDEVICE_TEST.md`](./MULTIDEVICE_TEST.md). El orden recomendado es:
+## Firebase
 
-1. 1v1 en dos dispositivos.
-2. Desconexión/reconexión de jugador.
-3. Caída del host y migración automática.
-4. 4P en cuatro dispositivos.
-5. 2v2.
-6. Revancha conservando la sala.
+La configuración Firebase pertenece al administrador del proyecto; los jugadores nunca deben introducir claves ni configuración técnica.
 
-## Paleta base
-
-```text
-#344D75  #4A7CA1  #637D98  #B6DDFE  #BAF0FA  #F7C5EB  #D069B8
-```
-
-El fondo principal permanece en `#B6DDFE`.
+Consulta `FIREBASE_SETUP.md` para configurar Authentication, Realtime Database y los secretos `VITE_FIREBASE_*` del workflow.
 
 <p align="center">
   <img src="./public/brand/signature.webp" alt="Luics415" width="340" />
 </p>
-
-
-## v0.6.0
-
-Online play now uses direct Firebase Realtime Database transactions for moves and wall placement, reducing host-relay latency. All modes start with 10 walls. At 30 seconds the active player receives an inactivity warning; after a 10-second grace period the game skips only that turn rather than eliminating or disconnecting the player.
-
-
-## Flujo online
-
-El comportamiento de creación, lobby, invitaciones y revancha está documentado en [`ONLINE_FLOW.md`](ONLINE_FLOW.md).

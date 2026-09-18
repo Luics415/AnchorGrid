@@ -25,8 +25,14 @@ interface Props {
   requiredPlayers?: number;
 }
 
+function teamName(teamId?: string) {
+  if (teamId === 'A') return 'Morado';
+  if (teamId === 'B') return 'Naranja';
+  return teamId ?? '';
+}
+
 function winnerLabel(game: GameState) {
-  if (game.winnerTeamId) return `Equipo ${game.winnerTeamId}`;
+  if (game.winnerTeamId) return `Equipo ${teamName(game.winnerTeamId)}`;
   const winner = game.players.find((player) => player.id === game.winnerPlayerId);
   return winner?.name ?? 'Victoria';
 }
@@ -79,13 +85,13 @@ export function GameScreen({
   const localVotedRematch = Boolean(localPlayerId && rematchVotes[localPlayerId]);
 
   return (
-    <main className={`game-shell theme-${game.themeId}`}>
+    <main className={`game-shell theme-${game.themeId} mode-${game.mode}`}>
       <ThemeAtmosphere themeId={game.themeId} />
       {!networkConnected && roomCode && <div className="connection-banner">Conexión perdida. Reconectando sin abandonar tu asiento…</div>}
 
       <header className="game-topbar glass-panel">
         <div>
-          <p className="eyebrow">{roomCode ? `SALA ${roomCode}` : 'PRUEBA LOCAL'}</p>
+          <p className="eyebrow">{roomCode ? `SALA ${roomCode}` : 'JUEGO LOCAL'}</p>
           <h1>{MODE_CONFIG[game.mode].label}</h1>
         </div>
         <div className="game-top-actions">
@@ -102,7 +108,6 @@ export function GameScreen({
         </div>
         <div className="timer-track"><div className="timer-fill" style={{ width: `${progress}%` }} /></div>
       </section>
-
 
       {inactivityWarning && (
         <section className={`inactivity-notice glass-panel ${warningForLocalPlayer ? 'for-you' : ''}`} role="status" aria-live="polite">
@@ -122,7 +127,10 @@ export function GameScreen({
         {sortedPlayers.map((player) => (
           <article key={player.id} className={`player-card glass-panel seat-${player.seat} ${player.id === game.turn.currentPlayerId ? 'active' : ''} ${player.eliminated ? 'eliminated' : ''}`}>
             <div className="player-color" />
-            <div className="player-info"><strong>{player.name}</strong><small>{player.teamId ? `Equipo ${player.teamId} · ` : ''}{player.eliminated ? 'Eliminado' : `${player.wallsRemaining} paredes${player.inactivityWarnings ? ` · ${player.inactivityWarnings} aviso${player.inactivityWarnings === 1 ? '' : 's'}` : ''}`}</small></div>
+            <div className="player-info">
+              <strong>{player.name}</strong>
+              <small>{player.teamId ? `Equipo ${teamName(player.teamId)} · ` : ''}{player.eliminated ? 'Eliminado' : `${player.wallsRemaining} paredes${player.inactivityWarnings ? ` · ${player.inactivityWarnings} aviso${player.inactivityWarnings === 1 ? '' : 's'}` : ''}`}</small>
+            </div>
             {!player.connected && <span className="offline-badge">OFFLINE</span>}
           </article>
         ))}
@@ -145,8 +153,8 @@ export function GameScreen({
             <p className="eyebrow">PARTIDA TERMINADA</p>
             <div className="result-symbol">✦</div>
             <h2>{winnerLabel(game)}</h2>
-            <p>{game.winnerTeamId ? 'El equipo alcanzó la meta o fue el último con jugadores activos.' : 'Ha ganado la partida.'}</p>
-            <div className="result-actions result-actions-grid">
+            <p>{game.winnerTeamId ? 'El equipo alcanzó la meta.' : 'Ha ganado la partida.'}</p>
+            <div className={`result-actions result-actions-grid ${roomCode ? 'online-result-actions' : 'local-result-actions'}`}>
               {roomCode ? (
                 <>
                   <button className="secondary-button" onClick={onReturnLobby} disabled={!networkConnected} title="Volver con todos a la sala de espera">

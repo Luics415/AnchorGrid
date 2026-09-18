@@ -22,6 +22,12 @@ const SEAT_LABEL: Record<string, string> = {
   west: 'Oeste'
 };
 
+function teamName(teamId?: string) {
+  if (teamId === 'A') return 'Morado';
+  if (teamId === 'B') return 'Naranja';
+  return teamId ?? '';
+}
+
 export function LobbyScreen({ room, isHost, networkConnected, serverOffsetMs, error, onStart, onLeave }: Props) {
   const theme = getTheme(room.meta.themeId);
   useAppTheme(room.meta.themeId);
@@ -42,7 +48,7 @@ export function LobbyScreen({ room, isHost, networkConnected, serverOffsetMs, er
   }
 
   return (
-    <main className={`shell lobby-shell theme-${room.meta.themeId}`}>
+    <main className={`shell lobby-shell theme-${room.meta.themeId} mode-${room.meta.mode}`}>
       <ThemeAtmosphere themeId={room.meta.themeId} />
       {!networkConnected && <div className="connection-banner">Reconectando con la sala… tu asiento permanece reservado.</div>}
 
@@ -86,7 +92,7 @@ export function LobbyScreen({ room, isHost, networkConnected, serverOffsetMs, er
                 <div className="seat-dot" />
                 <div className="seat-copy">
                   <strong>{player?.name ?? 'Esperando jugador…'}</strong>
-                  <small>{SEAT_LABEL[seat]}{player?.teamId ? ` · Equipo ${player.teamId}` : ''}</small>
+                  <small>{SEAT_LABEL[seat]}{player?.teamId ? ` · Equipo ${teamName(player.teamId)}` : ''}</small>
                 </div>
                 {isRoomHost && <span className="host-badge">HOST</span>}
                 {player && !player.connected && <span className="offline-badge">OFFLINE</span>}

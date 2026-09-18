@@ -44,6 +44,10 @@ export function HomeScreen({
 
   useAppTheme(themeChoice);
 
+  const selectedThemeName = themeChoice === 'random'
+    ? 'Atmósfera aleatoria'
+    : THEMES.find((theme) => theme.id === themeChoice)?.name ?? 'Atmósfera';
+
   function createRoom() {
     if (!firebaseConfigured || !firebaseConnected) return;
     onCreateOnline();
@@ -94,7 +98,7 @@ export function HomeScreen({
                   <span className="mode-icon">{id === 'duel' ? '↕' : id === 'team2v2' ? '×' : '✦'}</span>
                   <strong>{config.shortLabel}</strong>
                   <span>{config.label}</span>
-                  <small>{id === 'duel' ? 'Llega al lado opuesto.' : id === 'team2v2' ? 'Equipos cruzados hacia el centro.' : 'Primero en alcanzar el centro.'}</small>
+                  <small>{id === 'duel' ? 'Llega al lado opuesto.' : id === 'team2v2' ? 'Equipo Morado vs Equipo Naranja.' : 'Primero en alcanzar el centro.'}</small>
                 </button>
               );
             })}
@@ -102,7 +106,10 @@ export function HomeScreen({
         </div>
 
         <div className="glass-panel setup-card wide-card theme-picker-card">
-          <div className="section-heading"><div><p className="eyebrow">03 · ATMÓSFERA</p><h2>El tablero cambia de carácter</h2></div></div>
+          <div className="section-heading atmosphere-heading">
+            <div><p className="eyebrow">03 · ATMÓSFERA</p><h2>El tablero cambia de carácter</h2></div>
+            <p className="atmosphere-hint">Cada tema tiene movimiento propio durante toda la partida.</p>
+          </div>
           <div className="theme-strip rich-themes">
             <button className={`theme-chip theme-preview random-preview ${themeChoice === 'random' ? 'selected' : ''}`} onClick={() => setThemeChoice('random')}>
               <span className="theme-preview-art random-swatch"><i /><i /><i /></span>
@@ -147,6 +154,29 @@ export function HomeScreen({
           </div>
           {resuming && <p className="mini-status">Buscando tu asiento reservado…</p>}
         </div>
+
+        <section className="glass-panel setup-card wide-card local-play-card">
+          <div className="local-play-copy">
+            <p className="eyebrow">06 · JUEGO LOCAL</p>
+            <h2>Una pantalla, todos los jugadores</h2>
+            <p className="muted">Juega AnchorGrid directamente en este dispositivo. Sin sala, sin código y sin depender de Internet.</p>
+            <div className="local-feature-row" aria-label="Características del juego local">
+              <span>Sin Internet</span>
+              <span>11×11</span>
+              <span>10 paredes</span>
+              <span>1v1 · 4P · 2v2</span>
+            </div>
+          </div>
+          <div className="local-play-action">
+            <div className="local-selection-summary">
+              <small>Configuración actual</small>
+              <strong>{MODE_CONFIG[mode].shortLabel} · {selectedThemeName}</strong>
+            </div>
+            <button className="primary-button local-start-button" disabled={nickname.trim().length < 2} onClick={onStartLocal}>
+              Iniciar partida local
+            </button>
+          </div>
+        </section>
       </section>
 
       {error && <div className="notice error-notice">{error}</div>}
@@ -157,7 +187,6 @@ export function HomeScreen({
         </div>
       )}
 
-      <button className="local-test-button" disabled={nickname.trim().length < 2} onClick={onStartLocal}>Probar partida local</button>
       <footer className="home-brand-footer"><BrandSignature compact /></footer>
     </main>
   );
