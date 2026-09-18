@@ -1,70 +1,82 @@
-# AnchorGrid v0.8.2 — Game Atmospheres Hotfix
+# AnchorGrid v1.0.0-alpha.2 — IA + Performance + PWA
 
-Este ZIP es un **parche incremental** para instalar encima de AnchorGrid v0.8.1.
+Este ZIP es **acumulativo**.
 
-## Qué corrige
+Si todavía no instalaste `v1.0.0-alpha.1`, NO necesitas instalarlo primero.
+Aplica únicamente este parche encima de tu AnchorGrid v0.8.2 actual.
 
-Las instrucciones de Aurora/Bloom/Crystal/Stormlight/Nebula/Garden Pulse ahora se aplican específicamente al **fondo de la partida real**.
+## Incluye todo alpha.1
 
-No se trata de hacer más llamativos los botones del selector.
+- VS IA en 1v1, 4P y 2v2.
+- Fácil / Normal / Difícil / Maestro.
+- Minimax/alpha-beta para duelo y evaluación por equipos.
+- MaxN para 4 jugadores.
+- IA ejecutándose en Web Worker.
+- Performance Pass siempre en AUTO.
+- Optimización del arrastre de paredes.
+- Temporizador aislado del tablero.
+- BFS/pathfinding optimizado.
+- Atmósferas adaptativas.
+- Reacciones 😹 😸 🙀 😿 😾 😼.
 
-## Archivos incluidos
+## Nuevo en alpha.2
 
-```text
-src/components/ThemeAtmosphere.tsx
-src/components/GameScreen.tsx
-src/styles/v0.8.2-game-atmospheres.css
-src/main.tsx
-public/sw.js
-package.json
-README.md
-```
+La bienvenida incorpora instalación como aplicación:
+
+### Android / Chromium
+Cuando el navegador entrega `beforeinstallprompt`, aparece:
+
+`Instalar AnchorGrid`
+
+El botón abre el prompt nativo del sistema.
+
+### iPhone / iPad
+Se muestra:
+
+`Instalar en iPhone / iPad`
+
+y una guía integrada:
+
+1. Safari → Compartir.
+2. Agregar a pantalla de inicio.
+3. Abrir AnchorGrid desde el nuevo icono.
+
+### Importante
+Cuando AnchorGrid ya se ejecuta desde la aplicación instalada:
+
+- se detecta `display-mode: standalone`;
+- en iOS también se comprueba `navigator.standalone`;
+- la opción **Instalar AnchorGrid NO vuelve a aparecer**.
+
+La PWA sigue siendo opcional. El juego web continúa funcionando sin instalar.
 
 ## Instalación
 
 1. Descomprime este ZIP.
-2. Copia su contenido encima de la raíz de tu carpeta `AnchorGrid`.
-3. Acepta reemplazar los archivos existentes.
-4. No borres `.git`, `.env`, `node_modules` ni tus secretos/configuración Firebase.
+2. Copia su contenido encima de la raíz de tu proyecto AnchorGrid.
+3. Acepta reemplazar archivos.
+4. No borres `.git`, `.env`, `node_modules` ni tus secretos Firebase.
 
-Después:
+Después ejecuta:
 
 ```powershell
 npm test
 npm run build
 ```
 
-Si ambos terminan correctamente:
+Si todo pasa:
 
 ```powershell
 git add -A
-git commit -m "fix: AnchorGrid v0.8.2 in-game atmosphere scenes"
+git commit -m "feat: AnchorGrid 1.0 alpha 2 AI performance and PWA install"
 git push
 ```
 
-## Importante después del deploy
+## Caché
 
-El parche cambia el Service Worker a:
+El Service Worker cambia a:
 
-```text
-anchorgrid-v0.8.2
-```
+`anchorgrid-v1.0.0-alpha.2`
 
-Aun así, si ves el fondo anterior después de GitHub Pages:
-
-- prueba `Ctrl + F5`;
-- o abre una pestaña privada una vez;
-- en móvil cierra completamente el navegador/PWA y vuelve a abrirlo.
-
-## Resultado esperado
-
-Durante una partida —local u online— los fondos deben ser claramente visibles:
-
-- Aurora: blobs rosa/cian recorriendo el escenario.
-- Bloom: pétalos cayendo sin pausas perceptibles.
-- Crystal: cristales flotantes + reflejos móviles.
-- Stormlight: tiras largas de luz con encendidos lentos.
-- Nebula: polvo estelar abundante y nubes en deriva.
-- Garden Pulse: ondas de impacto tipo gotas de lluvia.
-
-El tablero permanece por encima, más sólido y legible.
+Si GitHub Pages todavía muestra una versión anterior después del despliegue,
+usa `Ctrl + F5` una vez o cierra completamente la PWA/navegador y vuelve a abrirlo.

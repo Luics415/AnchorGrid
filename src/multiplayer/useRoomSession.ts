@@ -8,6 +8,7 @@ import {
   leaveRoom,
   restartRoom,
   returnRoomToLobby,
+  sendReaction,
   voteRematch,
   resumeRoom,
   startRoom,
@@ -17,6 +18,7 @@ import {
   subscribeServerOffset
 } from './roomService';
 import type { GameAction, GameMode, ThemeId } from '../game';
+import type { ReactionEmoji } from '../reactions';
 import type { RoomRecord } from './types';
 
 export function useRoomSession() {
@@ -28,8 +30,10 @@ export function useRoomSession() {
   const [firebaseConnected, setFirebaseConnected] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+
   const roomRef = useRef<RoomRecord | null>(null);
   const offsetRef = useRef(0);
+  const lastReactionAtRef = useRef(0);
 
   useEffect(() => {
     roomRef.current = room;
@@ -41,140 +45,295 @@ export function useRoomSession() {
 
   useEffect(() => {
     if (!firebaseConfigured) return;
+
     const unsubscribeOffset = subscribeServerOffset(setServerOffsetMs);
     const unsubscribeConnection = subscribeConnectionState(setFirebaseConnected);
+
     return () => {
       unsubscribeOffset();
       unsubscribeConnection();
     };
   }, []);
 
-  const isHost = Boolean(room && uid && room.authority.hostUid === uid);
-  const serverNow = useCallback(() => Date.now() + offsetRef.current, []);
+  const isHost = Boolean(
+    room &&
+    uid &&
+    room.authority.hostUid === uid
+  );
+
+  const serverNow = useCallback(
+    () => Date.now() + offsetRef.current,
+    []
+  );
 
   const attach = useCallback((code: string) => {
     return subscribeRoom(code, (nextRoom) => {
-      setRoom(nextRoom);
+      setRoom((current) => {
+        if (!current || !nextRoom || !current.game || !nextRoom.game) {
+          return nextRoom;
+        }
+
+        const currentPresence = Object.values(current.players)
+          .map((player) => `${player.uid}:${player.connected ? 1 : 0}`)
+          .sort()
+          .join('|');
+
+        const nextPresence = Object.values(nextRoom.players)
+          .map((player) => `${player.uid}:${player.connected ? 1 : 0}`)
+          .sort()
+          .join('|');
+
+        // Reactions and rematch votes may update the room without changing the
+        // game. Reuse the exact GameState object so memoized board/atmosphere
+        // components do not render again just because someone sent 😹.
+        if (
+          current.game.id === nextRoom.game.id &&
+          current.game.revision === nextRoom.game.revision &&
+          currentPresence === nextPresence
+        ) {
+          return {
+            ...nextRoom,
+            game: current.game
+          };
+        }
+
+        return nextRoom;
+      });
+
       setLastSyncAt(Date.now());
     });
   }, []);
 
   const refreshUid = useCallback(() => {
     if (!firebaseConfigured) return null;
-    const currentUid = getFirebase().auth.currentUser?.uid ?? null;
+
+    const currentUid =
+      getFirebase().auth.currentUser?.uid ?? null;
+
     setUid(currentUid);
     return currentUid;
   }, []);
 
-  const create = useCallback(async (input: { name: string; mode: GameMode; themeId: ThemeId }) => {
-    setBusy(true);
-    setError('');
-    try {
-      const created = await createRoom(input);
-      refreshUid();
-      setRoom(created);
-      setLastSyncAt(Date.now());
-      return created.code;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'No se pudo crear la sala.';
-      setError(message);
-      throw cause;
-    } finally {
-      setBusy(false);
-    }
-  }, [refreshUid]);
+  const create = useCallback(
+    async (input: {
+      name: string;
+      mode: GameMode;
+      themeId: ThemeId;
+    }) => {
+      setBusy(true);
+      setError('');
 
-  const join = useCallback(async (code: string, name: string) => {
-    setBusy(true);
-    setError('');
-    try {
-      const joined = await joinRoom(code, name);
-      refreshUid();
-      setRoom(joined);
-      setLastSyncAt(Date.now());
-      return joined.code;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'No se pudo unir a la sala.';
-      setError(message);
-      throw cause;
-    } finally {
-      setBusy(false);
-    }
-  }, [refreshUid]);
+      try {
+        const created = await createRoom(input);
+        refreshUid();
+        setRoom(created);
+        setLastSyncAt(Date.now());
+        return created.code;
+      } catch (cause) {
+        const message =
+          cause instanceof Error
+            ? cause.message
+            : 'No se pudo crear la sala.';
 
-  const resume = useCallback(async (code: string) => {
-    if (!firebaseConfigured || code.length !== 4 || roomRef.current) return false;
-    setResuming(true);
-    setError('');
-    try {
-      const resumed = await resumeRoom(code);
-      refreshUid();
-      if (!resumed) return false;
-      setRoom(resumed);
-      setLastSyncAt(Date.now());
-      return true;
-    } catch {
-      return false;
-    } finally {
-      setResuming(false);
-    }
-  }, [refreshUid]);
+        setError(message);
+        throw cause;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refreshUid]
+  );
+
+  const join = useCallback(
+    async (code: string, name: string) => {
+      setBusy(true);
+      setError('');
+
+      try {
+        const joined = await joinRoom(code, name);
+        refreshUid();
+        setRoom(joined);
+        setLastSyncAt(Date.now());
+        return joined.code;
+      } catch (cause) {
+        const message =
+          cause instanceof Error
+            ? cause.message
+            : 'No se pudo unir a la sala.';
+
+        setError(message);
+        throw cause;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refreshUid]
+  );
+
+  const resume = useCallback(
+    async (code: string) => {
+      if (
+        !firebaseConfigured ||
+        code.length !== 4 ||
+        roomRef.current
+      ) {
+        return false;
+      }
+
+      setResuming(true);
+      setError('');
+
+      try {
+        const resumed = await resumeRoom(code);
+        refreshUid();
+
+        if (!resumed) return false;
+
+        setRoom(resumed);
+        setLastSyncAt(Date.now());
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setResuming(false);
+      }
+    },
+    [refreshUid]
+  );
 
   const start = useCallback(async () => {
     if (!room) return;
+
     setError('');
+
     try {
       await startRoom(room.code, serverNow());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo iniciar.');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo iniciar.'
+      );
     }
   }, [room, serverNow]);
 
   const rematch = useCallback(async () => {
     if (!room) return;
+
     setError('');
+
     try {
       await restartRoom(room.code, serverNow());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo iniciar la revancha.');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo iniciar la revancha.'
+      );
     }
   }, [room, serverNow]);
 
   const returnToLobby = useCallback(async () => {
     if (!room) return;
+
     setError('');
+
     try {
-      await returnRoomToLobby(room.code, serverNow());
+      await returnRoomToLobby(
+        room.code,
+        serverNow()
+      );
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo regresar al lobby.');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo regresar al lobby.'
+      );
     }
   }, [room, serverNow]);
 
   const requestRematch = useCallback(async () => {
     if (!room) return;
+
     setError('');
+
     try {
-      await voteRematch(room.code, serverNow());
+      await voteRematch(
+        room.code,
+        serverNow()
+      );
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo registrar tu revancha.');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo registrar tu revancha.'
+      );
     }
   }, [room, serverNow]);
 
-  const act = useCallback(async (action: GameAction) => {
-    const current = roomRef.current;
-    if (!current?.game) return;
-    try {
-      await submitAction(current.code, current, action, serverNow());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo enviar la jugada.');
-    }
-  }, [serverNow]);
+  const act = useCallback(
+    async (action: GameAction) => {
+      const current = roomRef.current;
+
+      if (!current?.game) return;
+
+      try {
+        await submitAction(
+          current.code,
+          current,
+          action,
+          serverNow()
+        );
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'No se pudo enviar la jugada.'
+        );
+      }
+    },
+    [serverNow]
+  );
+
+  const react = useCallback(
+    async (emoji: ReactionEmoji) => {
+      const current = roomRef.current;
+
+      if (!current?.game || !firebaseConnected) return;
+
+      const now = Date.now();
+
+      // Fast enough for playful use, slow enough to prevent a held button
+      // from flooding Firebase and everybody else's animation layer.
+      if (now - lastReactionAtRef.current < 650) return;
+
+      lastReactionAtRef.current = now;
+
+      try {
+        await sendReaction(
+          current.code,
+          emoji,
+          serverNow()
+        );
+      } catch {
+        // Reactions are deliberately non-critical. A failed emoji must never
+        // interrupt gameplay or replace the current game error.
+      }
+    },
+    [firebaseConnected, serverNow]
+  );
 
   const leave = useCallback(async () => {
     const current = roomRef.current;
+
     if (current) {
-      try { await leaveRoom(current.code); } catch { /* no-op */ }
+      try {
+        await leaveRoom(current.code);
+      } catch {
+        // no-op
+      }
     }
+
     setRoom(null);
     setLastSyncAt(null);
   }, []);
@@ -184,7 +343,6 @@ export function useRoomSession() {
     return attach(room.code);
   }, [room?.code, attach]);
 
-  // Presence is re-armed after every network reconnect.
   useEffect(() => {
     if (!room?.code || !uid) return;
     return attachRoomPresence(room.code, uid);
@@ -192,9 +350,16 @@ export function useRoomSession() {
 
   useEffect(() => {
     if (!room || !uid) return;
-    const hostPlayer = room.players[room.authority.hostUid];
+
+    const hostPlayer =
+      room.players[room.authority.hostUid];
+
     if (hostPlayer?.connected !== false) return;
-    attemptHostMigration(room, serverNow()).catch(() => undefined);
+
+    attemptHostMigration(
+      room,
+      serverNow()
+    ).catch(() => undefined);
   }, [room, uid, serverNow]);
 
   return {
@@ -217,6 +382,7 @@ export function useRoomSession() {
     returnToLobby,
     requestRematch,
     act,
+    react,
     leave,
     setError
   };

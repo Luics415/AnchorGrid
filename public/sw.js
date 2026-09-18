@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anchorgrid-v0.8.2';
+const CACHE_NAME = 'anchorgrid-v1.0.0-alpha.2';
 const APP_SHELL = [
   './',
   './manifest.webmanifest',
@@ -22,7 +22,11 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -42,7 +46,10 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(async () => (await caches.match(request)) || caches.match('./'))
+        .catch(async () => (
+          (await caches.match(request)) ||
+          caches.match('./')
+        ))
     );
     return;
   }
@@ -56,6 +63,7 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       });
+
       return cached || network;
     })
   );

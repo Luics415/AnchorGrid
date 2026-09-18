@@ -1,10 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { MODE_CONFIG, SEAT_ORDER, getTheme, type GameAction, type GameState } from '../game';
+import { useMemo } from 'react';
+import {
+  MODE_CONFIG,
+  SEAT_ORDER,
+  getTheme,
+  type GameAction,
+  type GameState
+} from '../game';
+import type { ReactionEmoji, ReactionEvent } from '../reactions';
 import { GameBoard } from './GameBoard';
 import { useAppTheme } from '../theme/useAppTheme';
 import { ThemeAtmosphere } from './ThemeAtmosphere';
 import { NetworkStatus } from './NetworkStatus';
 import { BrandSignature } from './BrandSignature';
+import { TurnTimer } from './TurnTimer';
+import { ReactionBar, ReactionTray } from './Reactions';
+import { useAutoPerformance } from '../performance';
 
 interface Props {
   game: GameState;
@@ -23,6 +33,10 @@ interface Props {
   onReturnLobby?: () => void;
   rematchVotes?: Record<string, boolean>;
   requiredPlayers?: number;
+  aiThinking?: boolean;
+  aiLabel?: string;
+  reactions?: ReactionEvent[];
+  onReact?: (emoji: ReactionEmoji) => void | Promise<void>;
 }
 
 function teamName(teamId?: string) {
@@ -53,43 +67,59 @@ export function GameScreen({
   onRequestRematch,
   onReturnLobby,
   rematchVotes = {},
-  requiredPlayers
+  requiredPlayers,
+  aiThinking = false,
+  aiLabel,
+  reactions = [],
+  onReact
 }: Props) {
-  const [now, setNow] = useState(serverNow());
-  const timeoutRevisionRef = useRef<number | null>(null);
   const theme = getTheme(game.themeId);
+  const autoPerformance = useAutoPerformance();
   useAppTheme(game.themeId);
-  const activePlayer = game.players.find((player) => player.id === game.turn.currentPlayerId);
+
+  const activePlayer = game.players.find(
+    (player) => player.id === game.turn.currentPlayerId
+  );
+
   const inactivityWarning = game.turn.phase === 'warning';
-  const warningForLocalPlayer = inactivityWarning && (canControlAll || localPlayerId === game.turn.currentPlayerId);
+  const warningForLocalPlayer =
+    inactivityWarning &&
+    (canControlAll || localPlayerId === game.turn.currentPlayerId);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(serverNow()), 100);
-    return () => window.clearInterval(timer);
-  }, [serverNow]);
-
-  const remainingMs = Math.max(0, game.turn.endsAt - now);
-  const seconds = Math.ceil(remainingMs / 1000);
-  const progress = Math.max(0, Math.min(100, (remainingMs / game.turn.durationMs) * 100));
-  const mayDriveTimer = networkConnected && (canControlAll || isHost || localPlayerId === game.turn.currentPlayerId);
-
-  useEffect(() => {
-    if (game.status !== 'playing' || remainingMs > 0 || !mayDriveTimer || timeoutRevisionRef.current === game.revision) return;
-    timeoutRevisionRef.current = game.revision;
-    void onAction({ type: 'TIMEOUT', playerId: game.turn.currentPlayerId });
-  }, [game.status, game.revision, game.turn.currentPlayerId, remainingMs, mayDriveTimer, onAction]);
+  const mayDriveTimer =
+    networkConnected &&
+    (
+      canControlAll ||
+      Boolean(aiLabel) ||
+      isHost ||
+      localPlayerId === game.turn.currentPlayerId
+    );
 
   const sortedPlayers = useMemo(
-    () => [...game.players].sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat)),
+    () => [...game.players].sort(
+      (a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat)
+    ),
     [game.players]
   );
+
   const rematchCount = Object.values(rematchVotes).filter(Boolean).length;
   const rematchTarget = requiredPlayers ?? game.players.length;
-  const localVotedRematch = Boolean(localPlayerId && rematchVotes[localPlayerId]);
+  const localVotedRematch = Boolean(
+    localPlayerId && rematchVotes[localPlayerId]
+  );
 
   return (
-    <main className={`game-shell theme-${game.themeId} mode-${game.mode}`}>
-      <ThemeAtmosphere themeId={game.themeId} intensity="game" />
+    <main
+      className={`game-shell theme-${game.themeId} mode-${game.mode}`}
+      data-performance={autoPerformance.quality}
+    >
+      <ThemeAtmosphere
+        themeId={game.themeId}
+        intensity="game"
+        quality={autoPerformance.quality}
+      />
+
+      <ReactionTray reactions={reactions} players={game.players} />
 
       {!networkConnected && roomCode && (
         <div className="connection-banner">
@@ -99,9 +129,16 @@ export function GameScreen({
 
       <header className="game-topbar glass-panel">
         <div>
-          <p className="eyebrow">{roomCode ? `SALA ${roomCode}` : 'JUEGO LOCAL'}</p>
+          <p className="eyebrow">
+            {roomCode
+              ? `SALA ${roomCode}`
+              : aiLabel
+                ? 'VS IA'
+                : 'JUEGO LOCAL'}
+          </p>
           <h1>{MODE_CONFIG[game.mode].label}</h1>
         </div>
+
         <div className="game-top-actions">
           {roomCode && (
             <NetworkStatus
@@ -112,43 +149,36 @@ export function GameScreen({
               compact
             />
           )}
-          <span className="theme-badge">{theme.name}</span>
-          <button className="ghost-button" onClick={onLeave}>Salir</button>
+
+          {aiLabel && (
+            <span className={`ai-status-pill ${aiThinking ? 'thinking' : ''}`}>
+              {aiThinking ? 'CPU pensando…' : aiLabel}
+            </span>
+          )}
+
+          <span
+            className="theme-badge"
+            title={`Rendimiento automático · ${autoPerformance.quality}`}
+          >
+            {theme.name}
+          </span>
+
+          <button className="ghost-button" onClick={onLeave}>
+            Salir
+          </button>
         </div>
       </header>
 
-      <section className={`turn-panel glass-panel ${seconds <= 5 || inactivityWarning ? 'urgent' : ''} ${inactivityWarning ? 'inactivity-phase' : ''}`}>
-        <div className="turn-line">
-          <div>
-            <small>{inactivityWarning ? 'Aviso de inactividad' : 'Turno'}</small>
-            <strong>{activePlayer?.name ?? '—'}</strong>
-          </div>
-          <div className={`timer-number ${seconds <= 5 || inactivityWarning ? 'danger' : ''}`}>
-            {seconds}
-          </div>
-        </div>
-        <div className="timer-track">
-          <div className="timer-fill" style={{ width: `${progress}%` }} />
-        </div>
-      </section>
-
-      {inactivityWarning && (
-        <section className={`inactivity-notice glass-panel ${warningForLocalPlayer ? 'for-you' : ''}`} role="status" aria-live="polite">
-          <span className="inactivity-icon" aria-hidden="true">!</span>
-          <div>
-            <strong>
-              {warningForLocalPlayer
-                ? '¿Sigues ahí?'
-                : `${activePlayer?.name ?? 'El jugador'} está inactivo`}
-            </strong>
-            <p>
-              {warningForLocalPlayer
-                ? `Tienes ${seconds} s para mover una ficha o arrastrar una pared. Si no respondes, sólo se saltará tu turno.`
-                : `Tiene ${seconds} s para volver. Si no responde, el turno continuará con el siguiente jugador.`}
-            </p>
-          </div>
-        </section>
-      )}
+      <TurnTimer
+        gameStatus={game.status}
+        revision={game.revision}
+        turn={game.turn}
+        activePlayerName={activePlayer?.name ?? '—'}
+        warningForLocalPlayer={warningForLocalPlayer}
+        mayDriveTimer={mayDriveTimer}
+        serverNow={serverNow}
+        onAction={onAction}
+      />
 
       <section className="player-grid">
         {sortedPlayers.map((player) => (
@@ -184,6 +214,13 @@ export function GameScreen({
         </div>
       )}
 
+      {onReact && game.status === 'playing' && (
+        <ReactionBar
+          disabled={!networkConnected}
+          onReact={onReact}
+        />
+      )}
+
       <BrandSignature compact className="game-signature" />
 
       {game.status === 'finished' && (
@@ -193,7 +230,11 @@ export function GameScreen({
             <p className="eyebrow">PARTIDA TERMINADA</p>
             <div className="result-symbol">✦</div>
             <h2>{winnerLabel(game)}</h2>
-            <p>{game.winnerTeamId ? 'El equipo alcanzó la meta.' : 'Ha ganado la partida.'}</p>
+            <p>
+              {game.winnerTeamId
+                ? 'El equipo alcanzó la meta.'
+                : 'Ha ganado la partida.'}
+            </p>
 
             <div className={`result-actions result-actions-grid ${roomCode ? 'online-result-actions' : 'local-result-actions'}`}>
               {roomCode ? (
@@ -222,8 +263,12 @@ export function GameScreen({
                 </>
               ) : (
                 <>
-                  <button className="ghost-button" onClick={onLeave}>Menú principal</button>
-                  <button className="primary-button" onClick={onRematch}>Revancha</button>
+                  <button className="ghost-button" onClick={onLeave}>
+                    Menú principal
+                  </button>
+                  <button className="primary-button" onClick={onRematch}>
+                    Revancha
+                  </button>
                 </>
               )}
             </div>

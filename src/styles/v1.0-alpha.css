@@ -1,0 +1,601 @@
+/* ============================================================
+   AnchorGrid 1.0.0-alpha.1
+   VS IA + AUTO performance + reactions + hot-path optimizations
+   ============================================================ */
+
+/* ----- VS IA home surface ----- */
+.ai-play-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 18px;
+  background:
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--theme-accent) 18%, transparent), transparent 34%),
+    linear-gradient(145deg, rgba(255,255,255,.56), rgba(255,255,255,.24));
+}
+
+.ai-play-card::after {
+  content: "♟";
+  position: absolute;
+  right: 22px;
+  top: -28px;
+  font-size: 170px;
+  line-height: 1;
+  opacity: .035;
+  pointer-events: none;
+  transform: rotate(7deg);
+}
+
+.ai-play-heading {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.ai-play-heading .muted {
+  max-width: 720px;
+}
+
+.auto-performance-badge {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.72);
+  background: rgba(255,255,255,.42);
+  color: #2f6672;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.62);
+}
+
+.ai-difficulty-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ai-difficulty-card {
+  appearance: none;
+  min-height: 150px;
+  padding: 14px;
+  border-radius: 19px;
+  border: 1px solid rgba(52,77,117,.11);
+  background: rgba(255,255,255,.31);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 9px 10px;
+  transition:
+    transform .18s ease,
+    background .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.ai-difficulty-card:hover {
+  transform: translateY(-2px);
+}
+
+.ai-difficulty-card.selected {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.66),
+      color-mix(in srgb, var(--theme-accent) 11%, rgba(255,255,255,.4))
+    );
+  border-color: color-mix(in srgb, var(--theme-accent) 52%, white);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--theme-glow) 35%, transparent);
+}
+
+.ai-difficulty-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(255,255,255,.52);
+  font-size: 20px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.74);
+}
+
+.ai-difficulty-card > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ai-difficulty-card strong {
+  color: var(--arc-1);
+  font-size: 14px;
+}
+
+.ai-difficulty-card small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.ai-difficulty-card p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ai-start-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px;
+  border-radius: 19px;
+  border: 1px solid rgba(255,255,255,.62);
+  background: rgba(255,255,255,.28);
+}
+
+.ai-start-row > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-start-row small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.ai-start-row strong {
+  margin-top: 3px;
+  color: var(--arc-1);
+}
+
+.ai-start-button {
+  min-width: 220px;
+}
+
+/* ----- AI status in match ----- */
+.ai-status-pill {
+  min-height: 31px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.58);
+  background: rgba(255,255,255,.32);
+  color: var(--arc-1);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+.ai-status-pill.thinking {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,.36),
+      color-mix(in srgb, var(--theme-accent-2) 24%, rgba(255,255,255,.42)),
+      rgba(255,255,255,.36)
+    );
+  background-size: 220% 100%;
+  animation: ai-thinking-shimmer 1.8s linear infinite;
+}
+
+@keyframes ai-thinking-shimmer {
+  to { background-position: -220% 0; }
+}
+
+/* ----- Reaction UX ----- */
+.reaction-bar {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px));
+  z-index: 80;
+}
+
+.reaction-toggle {
+  appearance: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  border: 1px solid rgba(255,255,255,.78);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.72), rgba(255,255,255,.34));
+  box-shadow:
+    0 12px 30px rgba(52,77,117,.18),
+    inset 0 1px 0 rgba(255,255,255,.72);
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.reaction-toggle:active {
+  transform: scale(.96);
+}
+
+.reaction-picker {
+  position: absolute;
+  right: 0;
+  bottom: 58px;
+  width: 174px;
+  padding: 9px;
+  border-radius: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  animation: reaction-picker-in .16s ease-out both;
+}
+
+.reaction-picker button {
+  appearance: none;
+  border: 0;
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: 13px;
+  background: rgba(255,255,255,.34);
+  cursor: pointer;
+  font-size: 24px;
+  transition: transform .12s ease, background .12s ease;
+}
+
+.reaction-picker button:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: rgba(255,255,255,.62);
+}
+
+@keyframes reaction-picker-in {
+  from { opacity: 0; transform: translateY(8px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.reaction-tray {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  top: max(96px, calc(env(safe-area-inset-top) + 72px));
+  z-index: 75;
+  width: min(210px, 44vw);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.reaction-pop {
+  max-width: 100%;
+  padding: 7px 10px 7px 8px;
+  border: 1px solid rgba(255,255,255,.68);
+  border-radius: 16px;
+  background: rgba(255,255,255,.58);
+  box-shadow: 0 9px 24px rgba(52,77,117,.12);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  animation: reaction-pop 6.4s ease both;
+}
+
+.reaction-pop span {
+  font-size: 25px;
+  line-height: 1;
+}
+
+.reaction-pop small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--arc-1);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+@keyframes reaction-pop {
+  0% { opacity: 0; transform: translate3d(12px,12px,0) scale(.72); }
+  8% { opacity: 1; transform: translate3d(0,0,0) scale(1.08); }
+  14% { transform: translate3d(0,-2px,0) scale(1); }
+  78% { opacity: 1; transform: translate3d(-4px,-10px,0); }
+  100% { opacity: 0; transform: translate3d(-8px,-28px,0) scale(.9); }
+}
+
+/* ----- Wall drag hot path -----
+   All 100 hitboxes remain cheap. Only the hovered candidate performs BFS.
+*/
+.wall-dragging .wall-slot.candidate-slot {
+  opacity: 1;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.wall-dragging .wall-slot.previewed {
+  pointer-events: auto !important;
+}
+
+.wall-dragging .wall-slot.previewed.invalid {
+  opacity: .72;
+  background: rgba(183,31,44,.18);
+  box-shadow:
+    0 0 0 1px rgba(183,31,44,.32),
+    0 0 10px rgba(183,31,44,.10);
+}
+
+.wall-dragging .wall-slot.previewed.valid {
+  opacity: 1;
+  background: color-mix(in srgb, var(--theme-accent) 72%, white 8%);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.58),
+    0 0 16px color-mix(in srgb, var(--theme-accent) 50%, transparent);
+}
+
+/* ----- Always-AUTO performance governor -----
+   No player-facing quality switch exists by design.
+*/
+.game-shell[data-performance="balanced"] .glass-panel {
+  backdrop-filter: blur(15px) saturate(116%);
+  -webkit-backdrop-filter: blur(15px) saturate(116%);
+}
+
+.game-shell[data-performance="performance"] .glass-panel {
+  backdrop-filter: blur(8px) saturate(108%);
+  -webkit-backdrop-filter: blur(8px) saturate(108%);
+}
+
+.game-shell[data-performance="performance"] .board-wrap {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.game-shell[data-performance="performance"] .player-card {
+  box-shadow: 0 7px 18px rgba(52,77,117,.08);
+}
+
+.game-shell[data-performance="performance"] .reaction-pop {
+  backdrop-filter: none;
+}
+
+.theme-atmosphere.quality-performance .theme-field {
+  opacity: .72;
+}
+
+.theme-atmosphere.quality-performance i {
+  box-shadow: none;
+}
+
+/* Small displays: keep VS IA and reactions comfortable. */
+@media (max-width: 840px) {
+  .ai-difficulty-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ai-play-heading {
+    flex-direction: column;
+  }
+
+  .auto-performance-badge {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .ai-difficulty-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-difficulty-card {
+    min-height: 104px;
+    grid-template-columns: 40px 1fr;
+  }
+
+  .ai-start-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ai-start-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .reaction-bar {
+    right: 9px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .reaction-toggle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .reaction-picker {
+    bottom: 53px;
+  }
+
+  .reaction-tray {
+    right: 9px;
+    top: 84px;
+    width: min(190px, 52vw);
+  }
+
+  .reaction-pop {
+    padding: 6px 8px 6px 7px;
+  }
+
+  .reaction-pop span {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-status-pill.thinking,
+  .reaction-pop,
+  .reaction-picker {
+    animation: none !important;
+  }
+}
+
+
+/* ============================================================
+   v1.0.0-alpha.2 · PWA install experience
+   Installation is offered only when useful. Once AnchorGrid is
+   running in standalone mode, the install CTA is not rendered.
+   ============================================================ */
+
+.welcome-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.welcome-install-button {
+  min-height: 50px;
+  padding-inline: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.70), rgba(255,255,255,.42));
+}
+
+.welcome-install-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-size: 15px;
+  font-weight: 950;
+  color: var(--arc-1);
+  background:
+    color-mix(in srgb, var(--theme-accent) 20%, rgba(255,255,255,.72));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.54),
+    0 5px 12px rgba(52,77,117,.08);
+}
+
+.welcome-install-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.ios-install-guide {
+  margin-top: 12px;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.60);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.45), rgba(255,255,255,.22));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.50);
+}
+
+.ios-install-step {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px;
+  border-radius: 13px;
+  background: rgba(255,255,255,.28);
+}
+
+.ios-install-step > span {
+  width: 23px;
+  height: 23px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: white;
+  font-size: 10px;
+  font-weight: 950;
+  background: linear-gradient(145deg, var(--arc-1), var(--arc-2));
+}
+
+.ios-install-step p {
+  margin: 1px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.ios-install-step strong {
+  color: var(--arc-1);
+}
+
+.welcome-installed-badge {
+  width: fit-content;
+  margin-top: 11px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(22,185,108,.22);
+  background: rgba(226,255,240,.42);
+  color: #087c49;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .025em;
+}
+
+.welcome-installed-badge span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: #16b96c;
+}
+
+@media (max-width: 650px) {
+  .welcome-primary-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-primary-actions button {
+    width: 100%;
+  }
+
+  .ios-install-guide {
+    grid-template-columns: 1fr;
+  }
+
+  .ios-install-step {
+    align-items: center;
+  }
+}
+
+@media (display-mode: standalone) {
+  .welcome-install-button,
+  .welcome-install-note,
+  .ios-install-guide {
+    display: none !important;
+  }
+}

@@ -20,11 +20,18 @@ import {
   type ThemeId,
   type Wall
 } from '../game';
+import {
+  REACTION_EMOJIS,
+  type ReactionEmoji,
+  type ReactionEvent
+} from '../reactions';
 import { ensureAnonymousUser, getFirebase } from './firebase';
 import type { RoomPlayer, RoomRecord } from './types';
 import { getNextConnectedHost } from './hostElection';
 
 const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
+const REACTION_TTL_MS = 12_000;
+const MAX_REACTIONS = 16;
 
 function roomRef(code: string) {
   return ref(getFirebase().database, `rooms/${code}`);
@@ -90,7 +97,8 @@ function normalizeRoom(
     code,
     ...value,
     game: null,
-    rematchVotes: value.rematchVotes ?? {}
+    rematchVotes: value.rematchVotes ?? {},
+    reactions: value.reactions ?? {}
   };
 
   room.game = hydrateGameState(
@@ -107,6 +115,7 @@ function randomCode() {
 
 export function subscribeServerOffset(callback: (offsetMs: number) => void) {
   const { database } = getFirebase();
+
   return onValue(ref(database, '.info/serverTimeOffset'), (snapshot) => {
     callback(Number(snapshot.val() ?? 0));
   });
@@ -114,6 +123,7 @@ export function subscribeServerOffset(callback: (offsetMs: number) => void) {
 
 export function subscribeConnectionState(callback: (connected: boolean) => void) {
   const { database } = getFirebase();
+
   return onValue(ref(database, '.info/connected'), (snapshot) => {
     callback(snapshot.val() === true);
   });
@@ -135,6 +145,7 @@ export function attachRoomPresence(code: string, uid: string) {
 
     await onDisconnect(connectedRef).set(false);
     await onDisconnect(lastSeenRef).set(serverTimestamp());
+
     await update(playerRef, {
       connected: true,
       lastSeenAt: serverTimestamp()
@@ -154,6 +165,7 @@ export async function createRoom(input: {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const code = randomCode();
     const firstSeat = config.seats[0];
+
     const player: RoomPlayer = {
       uid: user.uid,
       name: input.name,
@@ -181,23 +193,44 @@ export async function createRoom(input: {
         epoch: 1,
         claimedAt: now
       },
-      players: { [user.uid]: player },
+      players: {
+        [user.uid]: player
+      },
       game: null,
       rematchVotes: {},
+      reactions: {}
     };
 
-    const result = await runTransaction(roomRef(code), (current) => {
-      if (current && (!current.meta?.expiresAt || current.meta.expiresAt > now)) return;
-      return initial;
-    }, { applyLocally: false });
+    const result = await runTransaction(
+      roomRef(code),
+      (current) => {
+        if (
+          current &&
+          (!current.meta?.expiresAt || current.meta.expiresAt > now)
+        ) {
+          return;
+        }
 
-    if (result.committed) return { code, ...initial };
+        return initial;
+      },
+      { applyLocally: false }
+    );
+
+    if (result.committed) {
+      return {
+        code,
+        ...initial
+      };
+    }
   }
 
   throw new Error('No se pudo reservar un código de sala. Intenta de nuevo.');
 }
 
-export async function joinRoom(codeInput: string, name: string): Promise<RoomRecord> {
+export async function joinRoom(
+  codeInput: string,
+  name: string
+): Promise<RoomRecord> {
   const code = codeInput.replace(/\D/g, '').slice(0, 4);
 
   if (code.length !== 4) {
@@ -206,8 +239,6 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
 
   const user = await ensureAnonymousUser();
   const now = Date.now();
-
-  // Primero comprobamos la sala y su configuración.
   const room = await getRoom(code);
 
   if (!room) {
@@ -221,13 +252,12 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
   const existingPlayer = room.players?.[user.uid];
 
   if (room.meta.status !== 'lobby' && !existingPlayer) {
-    throw new Error('La partida ya comenzó y este dispositivo no tiene un asiento reservado.');
+    throw new Error(
+      'La partida ya comenzó y este dispositivo no tiene un asiento reservado.'
+    );
   }
 
   const config = MODE_CONFIG[room.meta.mode];
-
-  // Reservamos únicamente /players.
-  // Las actualizaciones de presencia/authority/meta ya no interfieren.
   const playersRef = ref(
     getFirebase().database,
     `rooms/${code}/players`
@@ -236,11 +266,7 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
   const result = await runTransaction(
     playersRef,
     (currentPlayers) => {
-      const players: Record<string, RoomPlayer> =
-        currentPlayers ?? {};
-
-      // Este dispositivo ya tenía un asiento:
-      // simplemente recuperarlo.
+      const players: Record<string, RoomPlayer> = currentPlayers ?? {};
       const existing = players[user.uid];
 
       if (existing) {
@@ -263,20 +289,15 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
         (candidate) => !usedSeats.has(candidate)
       );
 
-      // Realmente llena.
-      if (!seat) {
-        return;
-      };
+      if (!seat) return;
 
       const newPlayer: RoomPlayer = {
         uid: user.uid,
         name,
         seat,
-
         ...(room.meta.mode === 'team2v2'
           ? { teamId: TEAM_BY_SEAT[seat] }
           : {}),
-
         connected: true,
         joinedAt: now,
         lastSeenAt: now
@@ -300,11 +321,11 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
     }
 
     const players = Object.values(latest.players ?? {});
-    const config = MODE_CONFIG[latest.meta.mode];
+    const latestConfig = MODE_CONFIG[latest.meta.mode];
 
-    if (players.length >= config.requiredPlayers) {
+    if (players.length >= latestConfig.requiredPlayers) {
       throw new Error(
-        `La sala está llena (${players.length}/${config.requiredPlayers}).`
+        `La sala está llena (${players.length}/${latestConfig.requiredPlayers}).`
       );
     }
 
@@ -313,7 +334,6 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
     );
   }
 
-  // Esto no necesita participar en la reserva del asiento.
   await update(
     ref(getFirebase().database, `rooms/${code}/meta`),
     {
@@ -324,7 +344,9 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
   const joined = await getRoom(code);
 
   if (!joined?.players?.[user.uid]) {
-    throw new Error('El asiento se reservó, pero no pudo recuperarse.');
+    throw new Error(
+      'El asiento se reservó, pero no pudo recuperarse.'
+    );
   }
 
   return joined;
@@ -333,16 +355,24 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
 /** Resume after refresh/app restart when this anonymous Firebase user already owns a seat. */
 export async function resumeRoom(codeInput: string): Promise<RoomRecord | null> {
   const code = codeInput.replace(/\D/g, '').slice(0, 4);
+
   if (code.length !== 4) return null;
 
   const user = await ensureAnonymousUser();
   const room = await getRoom(code);
+
   if (!room?.players?.[user.uid]) return null;
 
-  await update(ref(getFirebase().database, `rooms/${code}/players/${user.uid}`), {
-    connected: true,
-    lastSeenAt: serverTimestamp()
-  });
+  await update(
+    ref(
+      getFirebase().database,
+      `rooms/${code}/players/${user.uid}`
+    ),
+    {
+      connected: true,
+      lastSeenAt: serverTimestamp()
+    }
+  );
 
   return (await getRoom(code)) ?? room;
 }
@@ -352,7 +382,10 @@ export async function getRoom(code: string): Promise<RoomRecord | null> {
   return normalizeRoom(code, snapshot.val());
 }
 
-export function subscribeRoom(code: string, callback: (room: RoomRecord | null) => void) {
+export function subscribeRoom(
+  code: string,
+  callback: (room: RoomRecord | null) => void
+) {
   return onValue(roomRef(code), (snapshot) => {
     callback(normalizeRoom(code, snapshot.val()));
   });
@@ -361,15 +394,27 @@ export function subscribeRoom(code: string, callback: (room: RoomRecord | null) 
 export async function startRoom(code: string, serverNow: number) {
   const user = await ensureAnonymousUser();
   const room = await getRoom(code);
-  if (!room) throw new Error('Sala no encontrada.');
-  if (room.authority.hostUid !== user.uid) throw new Error('Solo el host puede iniciar.');
+
+  if (!room) {
+    throw new Error('Sala no encontrada.');
+  }
+
+  if (room.authority.hostUid !== user.uid) {
+    throw new Error('Solo el host puede iniciar.');
+  }
 
   const connected = Object.values(room.players)
     .filter((player) => player.connected)
-    .sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat));
+    .sort(
+      (a, b) =>
+        SEAT_ORDER.indexOf(a.seat) -
+        SEAT_ORDER.indexOf(b.seat)
+    );
 
   if (connected.length !== room.meta.requiredPlayers) {
-    throw new Error(`Se necesitan ${room.meta.requiredPlayers} jugadores conectados.`);
+    throw new Error(
+      `Se necesitan ${room.meta.requiredPlayers} jugadores conectados.`
+    );
   }
 
   const game = createGameState({
@@ -377,29 +422,46 @@ export async function startRoom(code: string, serverNow: number) {
     themeId: room.meta.themeId,
     now: serverNow,
     gameId: `${code}-${serverNow}`,
-    players: connected.map((player) => ({ id: player.uid, name: player.name, seat: player.seat }))
+    players: connected.map((player) => ({
+      id: player.uid,
+      name: player.name,
+      seat: player.seat
+    }))
   });
 
   await update(roomRef(code), {
     game,
     'meta/status': 'playing',
     'meta/updatedAt': serverNow,
-    rematchVotes: {}
+    rematchVotes: {},
+    reactions: null
   });
 }
 
 export async function restartRoom(code: string, serverNow: number) {
   const user = await ensureAnonymousUser();
   const room = await getRoom(code);
-  if (!room) throw new Error('Sala no encontrada.');
-  if (room.authority.hostUid !== user.uid) throw new Error('Solo el host puede iniciar la revancha.');
+
+  if (!room) {
+    throw new Error('Sala no encontrada.');
+  }
+
+  if (room.authority.hostUid !== user.uid) {
+    throw new Error('Solo el host puede iniciar la revancha.');
+  }
 
   const connected = Object.values(room.players)
     .filter((player) => player.connected)
-    .sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat));
+    .sort(
+      (a, b) =>
+        SEAT_ORDER.indexOf(a.seat) -
+        SEAT_ORDER.indexOf(b.seat)
+    );
 
   if (connected.length !== room.meta.requiredPlayers) {
-    throw new Error('Todos los asientos deben estar conectados para la revancha.');
+    throw new Error(
+      'Todos los asientos deben estar conectados para la revancha.'
+    );
   }
 
   const game = createGameState({
@@ -407,70 +469,170 @@ export async function restartRoom(code: string, serverNow: number) {
     themeId: room.meta.themeId,
     now: serverNow,
     gameId: `${code}-${serverNow}`,
-    players: connected.map((player) => ({ id: player.uid, name: player.name, seat: player.seat }))
+    players: connected.map((player) => ({
+      id: player.uid,
+      name: player.name,
+      seat: player.seat
+    }))
   });
 
   await update(roomRef(code), {
     game,
     'meta/status': 'playing',
     'meta/updatedAt': serverNow,
-    rematchVotes: {}
+    rematchVotes: {},
+    reactions: null
   });
 }
 
 /** Return the whole room to the waiting lobby while keeping seats and presence. */
-export async function returnRoomToLobby(code: string, serverNow: number) {
+export async function returnRoomToLobby(
+  code: string,
+  serverNow: number
+) {
   const user = await ensureAnonymousUser();
   const room = await getRoom(code);
-  if (!room) throw new Error('Sala no encontrada.');
-  if (!room.players?.[user.uid]) throw new Error('No perteneces a esta sala.');
-  if (!room.game || room.game.status !== 'finished') throw new Error('La partida todavía no ha terminado.');
+
+  if (!room) {
+    throw new Error('Sala no encontrada.');
+  }
+
+  if (!room.players?.[user.uid]) {
+    throw new Error('No perteneces a esta sala.');
+  }
+
+  if (!room.game || room.game.status !== 'finished') {
+    throw new Error('La partida todavía no ha terminado.');
+  }
 
   await update(roomRef(code), {
     game: null,
     rematchVotes: {},
+    reactions: null,
     'meta/status': 'lobby',
     'meta/updatedAt': serverNow
   });
 }
 
 /**
+ * Reactions live in their own Firebase branch so sending 😹 never touches
+ * /game and therefore cannot delay or conflict with a move transaction.
+ */
+export async function sendReaction(
+  code: string,
+  emoji: ReactionEmoji,
+  serverNow: number
+) {
+  if (!REACTION_EMOJIS.includes(emoji)) return;
+
+  const user = await ensureAnonymousUser();
+  const reactionId = [
+    serverNow.toString(36),
+    user.uid.slice(0, 6),
+    Math.random().toString(36).slice(2, 7)
+  ].join('-');
+
+  const reaction: ReactionEvent = {
+    id: reactionId,
+    uid: user.uid,
+    emoji,
+    createdAt: serverNow
+  };
+
+  await runTransaction(
+    ref(getFirebase().database, `rooms/${code}/reactions`),
+    (current) => {
+      const source = (current ?? {}) as Record<string, ReactionEvent>;
+
+      const freshEntries = Object.entries(source)
+        .filter(([, item]) => (
+          item &&
+          typeof item.createdAt === 'number' &&
+          serverNow - item.createdAt <= REACTION_TTL_MS
+        ))
+        .sort((a, b) => a[1].createdAt - b[1].createdAt)
+        .slice(-(MAX_REACTIONS - 1));
+
+      return {
+        ...Object.fromEntries(freshEntries),
+        [reactionId]: reaction
+      };
+    },
+    { applyLocally: true }
+  );
+}
+
+/**
  * Every connected player can vote for a rematch. When all required players
  * have voted, the final voter atomically starts a fresh game for the room.
  */
-export async function voteRematch(code: string, serverNow: number) {
+export async function voteRematch(
+  code: string,
+  serverNow: number
+) {
   const user = await ensureAnonymousUser();
   const root = roomRef(code);
 
-  const result = await runTransaction(root, (room) => {
-    if (!room?.game || room.game.status !== 'finished') return room;
-    if (!room.players?.[user.uid]?.connected) return room;
+  const result = await runTransaction(
+    root,
+    (room) => {
+      if (!room?.game || room.game.status !== 'finished') {
+        return room;
+      }
 
-    room.rematchVotes = room.rematchVotes ?? {};
-    room.rematchVotes[user.uid] = true;
+      if (!room.players?.[user.uid]?.connected) {
+        return room;
+      }
 
-    const connected = (Object.values(room.players) as RoomPlayer[])
-      .filter((player) => player.connected)
-      .sort((a, b) => SEAT_ORDER.indexOf(a.seat) - SEAT_ORDER.indexOf(b.seat));
-    const votes = connected.filter((player) => room.rematchVotes?.[player.uid]).length;
+      room.rematchVotes = room.rematchVotes ?? {};
+      room.rematchVotes[user.uid] = true;
 
-    if (connected.length === room.meta.requiredPlayers && votes === room.meta.requiredPlayers) {
-      room.game = createGameState({
-        mode: room.meta.mode as GameMode,
-        themeId: room.meta.themeId as ThemeId,
-        now: serverNow,
-        gameId: `${code}-${serverNow}`,
-        players: connected.map((player) => ({ id: player.uid, name: player.name, seat: player.seat }))
-      });
-      room.meta.status = 'playing';
-      room.meta.updatedAt = serverNow;
-      room.rematchVotes = {};
-    }
+      const connected = (
+        Object.values(room.players) as RoomPlayer[]
+      )
+        .filter((player) => player.connected)
+        .sort(
+          (a, b) =>
+            SEAT_ORDER.indexOf(a.seat) -
+            SEAT_ORDER.indexOf(b.seat)
+        );
 
-    return room;
-  }, { applyLocally: false });
+      const votes = connected.filter(
+        (player) => room.rematchVotes?.[player.uid]
+      ).length;
 
-  if (!result.committed) throw new Error('No se pudo registrar el voto de revancha.');
+      if (
+        connected.length === room.meta.requiredPlayers &&
+        votes === room.meta.requiredPlayers
+      ) {
+        room.game = createGameState({
+          mode: room.meta.mode as GameMode,
+          themeId: room.meta.themeId as ThemeId,
+          now: serverNow,
+          gameId: `${code}-${serverNow}`,
+          players: connected.map((player) => ({
+            id: player.uid,
+            name: player.name,
+            seat: player.seat
+          }))
+        });
+
+        room.meta.status = 'playing';
+        room.meta.updatedAt = serverNow;
+        room.rematchVotes = {};
+        room.reactions = {};
+      }
+
+      return room;
+    },
+    { applyLocally: false }
+  );
+
+  if (!result.committed) {
+    throw new Error(
+      'No se pudo registrar el voto de revancha.'
+    );
+  }
 }
 
 export async function submitAction(
@@ -480,21 +642,27 @@ export async function submitAction(
   serverNow: number
 ) {
   const user = await ensureAnonymousUser();
+
   if (!room.game) return;
 
-  // Normal moves and walls are committed directly by the player through an
-  // RTDB transaction. This removes the old player -> host -> database relay
-  // and noticeably lowers cross-country input latency. The host remains the
-  // watchdog for timeouts and room authority/migration.
   const isOwnAction = action.playerId === user.uid;
-  const isHostTimeout = action.type === 'TIMEOUT' && room.authority.hostUid === user.uid;
+  const isHostTimeout =
+    action.type === 'TIMEOUT' &&
+    room.authority.hostUid === user.uid;
+
   if (!isOwnAction && !isHostTimeout) {
-    throw new Error('Esta jugada no pertenece a este dispositivo.');
+    throw new Error(
+      'Esta jugada no pertenece a este dispositivo.'
+    );
   }
 
   const expectedRevision = room.game.revision;
+
   await runTransaction(
-    ref(getFirebase().database, `rooms/${code}/game`),
+    ref(
+      getFirebase().database,
+      `rooms/${code}/game`
+    ),
     (rawGame) => {
       const game = hydrateGameState(
         rawGame as FirebaseGameState | null,
@@ -530,20 +698,40 @@ export async function submitAction(
   );
 }
 
-export async function attemptHostMigration(room: RoomRecord, serverNow: number) {
+export async function attemptHostMigration(
+  room: RoomRecord,
+  serverNow: number
+) {
   const user = await ensureAnonymousUser();
   const nextHost = getNextConnectedHost(room);
-  if (!nextHost || nextHost.uid !== user.uid) return false;
 
-  const authorityRef = ref(getFirebase().database, `rooms/${room.code}/authority`);
-  const result = await runTransaction(authorityRef, (authority) => {
-    if (!authority || authority.hostUid !== room.authority.hostUid) return;
-    return {
-      hostUid: user.uid,
-      epoch: Number(authority.epoch ?? 0) + 1,
-      claimedAt: serverNow
-    };
-  }, { applyLocally: false });
+  if (!nextHost || nextHost.uid !== user.uid) {
+    return false;
+  }
+
+  const authorityRef = ref(
+    getFirebase().database,
+    `rooms/${room.code}/authority`
+  );
+
+  const result = await runTransaction(
+    authorityRef,
+    (authority) => {
+      if (
+        !authority ||
+        authority.hostUid !== room.authority.hostUid
+      ) {
+        return;
+      }
+
+      return {
+        hostUid: user.uid,
+        epoch: Number(authority.epoch ?? 0) + 1,
+        claimedAt: serverNow
+      };
+    },
+    { applyLocally: false }
+  );
 
   return result.committed;
 }
@@ -552,41 +740,69 @@ export async function leaveRoom(code: string) {
   const user = await ensureAnonymousUser();
   const now = Date.now();
   const current = await getRoom(code);
+
   if (!current?.players?.[user.uid]) return;
 
-  if (current.meta.status === 'playing' && current.game?.status !== 'finished') {
-    await update(ref(getFirebase().database, `rooms/${code}/players/${user.uid}`), {
-      connected: false,
-      lastSeenAt: serverTimestamp()
-    });
+  if (
+    current.meta.status === 'playing' &&
+    current.game?.status !== 'finished'
+  ) {
+    await update(
+      ref(
+        getFirebase().database,
+        `rooms/${code}/players/${user.uid}`
+      ),
+      {
+        connected: false,
+        lastSeenAt: serverTimestamp()
+      }
+    );
+
     return;
   }
 
-  // In lobby or after a finished match, an explicit leave frees the seat.
-  // The remaining players keep their result screen until somebody explicitly
-  // returns the shared room to the lobby.
-  await runTransaction(roomRef(code), (room) => {
-    if (!room?.players?.[user.uid]) return room;
-    delete room.players[user.uid];
+  await runTransaction(
+    roomRef(code),
+    (room) => {
+      if (!room?.players?.[user.uid]) {
+        return room;
+      }
 
-    const remaining = Object.values(room.players) as RoomPlayer[];
-    if (remaining.length === 0) return null;
+      delete room.players[user.uid];
 
-    if (room.rematchVotes?.[user.uid]) delete room.rematchVotes[user.uid];
+      const remaining = Object.values(room.players) as RoomPlayer[];
 
-    if (room.authority?.hostUid === user.uid) {
-      const seats = MODE_CONFIG[room.meta.mode as GameMode].seats;
-      const next = [...remaining]
-        .filter((player) => player.connected)
-        .sort((a, b) => seats.indexOf(a.seat) - seats.indexOf(b.seat))[0] ?? remaining[0];
-      room.authority = {
-        hostUid: next.uid,
-        epoch: Number(room.authority.epoch ?? 0) + 1,
-        claimedAt: now
-      };
-    }
+      if (remaining.length === 0) {
+        return null;
+      }
 
-    room.meta.updatedAt = now;
-    return room;
-  }, { applyLocally: false });
+      if (room.rematchVotes?.[user.uid]) {
+        delete room.rematchVotes[user.uid];
+      }
+
+      if (room.authority?.hostUid === user.uid) {
+        const seats = MODE_CONFIG[
+          room.meta.mode as GameMode
+        ].seats;
+
+        const next = [...remaining]
+          .filter((player) => player.connected)
+          .sort(
+            (a, b) =>
+              seats.indexOf(a.seat) -
+              seats.indexOf(b.seat)
+          )[0] ?? remaining[0];
+
+        room.authority = {
+          hostUid: next.uid,
+          epoch: Number(room.authority.epoch ?? 0) + 1,
+          claimedAt: now
+        };
+      }
+
+      room.meta.updatedAt = now;
+      return room;
+    },
+    { applyLocally: false }
+  );
 }

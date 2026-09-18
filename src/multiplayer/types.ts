@@ -1,4 +1,5 @@
 import type { GameMode, GameState, Seat, TeamId, ThemeId } from '../game';
+import type { ReactionEvent } from '../reactions';
 
 export type RoomStatus = 'lobby' | 'playing';
 
@@ -35,4 +36,5 @@ export interface RoomRecord {
   players: Record<string, RoomPlayer>;
   game: GameState | null;
   rematchVotes: Record<string, boolean>;
+  reactions?: Record<string, ReactionEvent>;
 }

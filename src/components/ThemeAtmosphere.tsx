@@ -1,5 +1,6 @@
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import type { ThemeId } from '../game';
+import type { AutoPerformanceQuality } from '../performance';
 
 type FxStyle = CSSProperties & {
   '--fx-index': number;
@@ -17,49 +18,59 @@ interface Props {
   themeId: ThemeId;
   compact?: boolean;
   intensity?: AtmosphereIntensity;
+  quality?: AutoPerformanceQuality;
 }
 
 const GAME_DENSITY: Record<ThemeId, number> = {
-  aurora: 12,
-  bloom: 38,
-  crystal: 18,
-  stormlight: 12,
-  nebula: 52,
-  gardenPulse: 30
+  aurora: 10,
+  bloom: 24,
+  crystal: 14,
+  stormlight: 8,
+  nebula: 26,
+  gardenPulse: 16
 };
 
 const AMBIENT_DENSITY: Record<ThemeId, number> = {
-  aurora: 8,
-  bloom: 14,
-  crystal: 9,
-  stormlight: 7,
-  nebula: 18,
-  gardenPulse: 12
+  aurora: 6,
+  bloom: 10,
+  crystal: 7,
+  stormlight: 5,
+  nebula: 12,
+  gardenPulse: 8
+};
+
+const QUALITY_FACTOR: Record<AutoPerformanceQuality, number> = {
+  high: 1,
+  balanced: 0.72,
+  performance: 0.46
 };
 
 function position(index: number, multiplier: number, offset = 0) {
   return (offset + index * multiplier) % 100;
 }
 
-export function ThemeAtmosphere({
+export const ThemeAtmosphere = memo(function ThemeAtmosphere({
   themeId,
   compact = false,
-  intensity = 'ambient'
+  intensity = 'ambient',
+  quality = 'balanced'
 }: Props) {
+  const baseCount = intensity === 'game'
+    ? GAME_DENSITY[themeId]
+    : AMBIENT_DENSITY[themeId];
+
   const count = compact
-    ? Math.min(8, AMBIENT_DENSITY[themeId])
-    : intensity === 'game'
-      ? GAME_DENSITY[themeId]
-      : AMBIENT_DENSITY[themeId];
+    ? Math.max(4, Math.min(7, Math.round(baseCount * 0.55)))
+    : Math.max(4, Math.round(baseCount * QUALITY_FACTOR[quality]));
 
   return (
     <div
-      className={`theme-atmosphere atmosphere-${themeId} atmosphere-${intensity} ${compact ? 'compact' : ''}`}
+      className={`theme-atmosphere atmosphere-${themeId} atmosphere-${intensity} quality-${quality} ${compact ? 'compact' : ''}`}
       aria-hidden="true"
     >
       <span className="theme-field theme-field-a" />
       <span className="theme-field theme-field-b" />
-      <span className="theme-field theme-field-c" />
+      {quality !== 'performance' && <span className="theme-field theme-field-c" />}
 
       {Array.from({ length: count }, (_, index) => {
         const direction = index % 2 === 0 ? 1 : -1;
@@ -88,4 +99,4 @@ export function ThemeAtmosphere({
       })}
     </div>
   );
-}
+});

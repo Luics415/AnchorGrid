@@ -4,88 +4,227 @@
 
 # AnchorGrid
 
-**Versión actual: v0.8.2**
+## v1.0.0-alpha.2 — instalación como aplicación
 
-AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, diseñado para jugar de forma **local** o mediante **salas privadas** entre amigos.
+La bienvenida puede ofrecer **Instalar AnchorGrid** cuando el navegador admite
+la instalación PWA.
+
+- En Android/Chromium se usa el prompt nativo de instalación cuando está disponible.
+- En iPhone/iPad se muestra una guía breve para **Safari → Compartir → Agregar a pantalla de inicio**.
+- La instalación nunca es obligatoria para Online, Local o VS IA.
+- Cuando AnchorGrid se abre desde el icono instalado, se detecta `display-mode: standalone`
+  (y `navigator.standalone` en iOS), por lo que **el botón de instalar deja de aparecer**.
+- El Service Worker usa el caché `anchorgrid-v1.0.0-alpha.2`.
+
+
+**Versión de desarrollo: v1.0.0-alpha.2**
+
+AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, diseñado para jugar **online con amigos**, **localmente** o **contra IA**.
 
 **Sitio:** `https://luics415.github.io/AnchorGrid/`
 
-## v0.8.2 — fondos de partida
+## Camino a 1.0
 
-Esta actualización corrige específicamente la interpretación visual de las atmósferas: los efectos descritos para Aurora, Bloom, Crystal, Stormlight, Nebula y Garden Pulse pertenecen al **fondo real durante la partida**, no a los botones del selector.
+Esta alpha inicia la última gran fase antes de AnchorGrid 1.0:
 
-Durante el juego:
+- VS IA para 1v1, 4P y 2v2.
+- Dificultades Fácil, Normal, Difícil y Maestro.
+- IA ejecutada en Web Worker.
+- Minimax + poda alpha-beta en modos de dos bandos.
+- MaxN en Todos al centro (4P).
+- Evaluación cooperativa real en 2v2.
+- Performance Pass con rendimiento **siempre automático**.
+- Optimización del drag de paredes.
+- Temporizador aislado del tablero.
+- Pathfinding más barato.
+- Reacciones rápidas online: 😹 😸 🙀 😿 😾 😼.
 
-- **Aurora:** grandes manchas rosa/cian recorren lentamente distintas zonas del escenario y cambian de escala durante el trayecto.
-- **Bloom:** lluvia continua de pétalos con suficientes partículas y desfases para que nunca exista un periodo vacío evidente.
-- **Crystal:** fragmentos de cristal flotan, cambian sutilmente de brillo y dos reflejos fríos recorren lentamente el escenario.
-- **Stormlight:** grandes tiras luminosas permanecen apagadas durante periodos largos y después encienden/desvanecen lentamente.
-- **Nebula:** campo de polvo estelar mucho más denso, con pequeñas agrupaciones independientes y nubes espaciales en deriva.
-- **Garden Pulse:** ondas circulares nacen desde distintos puntos como gotas de lluvia, se expanden, pierden fuerza y desaparecen.
+## VS IA
 
-`ThemeAtmosphere` ahora distingue entre una atmósfera ambiental normal y una **atmósfera de partida de alta presencia**, de modo que el menú/lobby no necesita cargar la misma cantidad de partículas que el tablero.
+La CPU utiliza el mismo `GameState`, las mismas reglas y las mismas acciones que un jugador. No recibe paredes extras, información oculta ni movimientos imposibles.
 
-El tablero conserva mayor prioridad visual y es más sólido para que las nuevas animaciones no reduzcan su legibilidad.
+### Fácil
 
-## v0.8.1
+- Búsqueda superficial.
+- Avanza de forma coherente.
+- Considera algunas paredes.
+- Escoge ocasionalmente entre varias opciones razonables.
+- Deja oportunidades claras para aprender.
 
-- Se agregó un apartado propio de **Juego Local** al menú.
-- El final de partida en escritorio fue ampliado y rediseñado, manteniendo la composición compacta en móvil.
-- En 2v2:
-  - Norte + Sur = **Equipo Morado**.
-  - Este + Oeste = **Equipo Naranja**.
-  - Fichas, paredes, indicadores y etiquetas respetan el equipo.
-- Todos los modos utilizan tablero 11×11 y 10 paredes por jugador.
-- El temporizador mantiene el aviso de inactividad antes de saltar el turno.
+### Normal
+
+- Compara rutas.
+- Detecta amenazas.
+- Usa paredes con intención.
+- Busca un par de plies hacia adelante.
+
+### Difícil
+
+- Anticipa varias respuestas.
+- Administra paredes.
+- Castiga rutas demasiado obvias.
+- Cambia entre presión y avance.
+
+### Maestro
+
+Maestro funciona como un pequeño motor de juego de tablero:
+
+- iterative deepening;
+- poda alpha-beta en 1v1 y 2v2;
+- MaxN en 4P;
+- tabla de transposición por posición;
+- generación selectiva de paredes;
+- presupuesto de tiempo para responder rápido;
+- cuando dos líneas son prácticamente equivalentes puede escoger ocasionalmente la segunda.
+
+Esto evita convertir Maestro en una máquina artificialmente perfecta. Si existe una jugada claramente superior, la CPU la prioriza; la pequeña variación sólo aparece entre decisiones con evaluación casi equivalente.
+
+## IA por modo
+
+### 1v1
+
+Humano Norte contra CPU Sur.
+
+La evaluación compara:
+
+- distancia propia;
+- distancia rival;
+- paredes restantes;
+- movilidad;
+- impacto de las paredes.
+
+### 4P
+
+Humano Norte contra tres CPU.
+
+La búsqueda usa **MaxN**: cada participante tiene su propia utilidad y toma decisiones desde su interés actual, en vez de tratar a las tres CPU como un solo enemigo.
+
+### 2v2
+
+- Norte + Sur = Equipo Morado.
+- Este + Oeste = Equipo Naranja.
+- El humano ocupa Norte.
+- Sur es una CPU aliada.
+- Este y Oeste son CPU enemigas.
+
+La IA evalúa el estado del equipo completo. Una CPU aliada puede priorizar bloquear a Naranja si el humano Morado está cerca del centro.
+
+## Performance Pass
+
+El rendimiento no tiene selector manual. **Siempre funciona en AUTO.**
+
+AnchorGrid mide los FPS reales durante la partida y utiliza histéresis para evitar cambios constantes:
+
+- `high`
+- `balanced`
+- `performance`
+
+Si detecta una caída sostenida, reduce automáticamente carga visual. Si el dispositivo se recupera durante suficiente tiempo, puede recuperar calidad.
+
+La jugabilidad jamás cambia.
+
+### Cambios técnicos principales
+
+#### Temporizador
+
+Antes, `GameScreen` actualizaba el reloj muchas veces por segundo y podía provocar renders del árbol completo del juego.
+
+Ahora `TurnTimer` es independiente y actualiza únicamente su panel.
+
+#### Arrastre de paredes
+
+Antes era posible evaluar hasta 100 anclajes de pared durante un render de drag.
+
+Ahora:
+
+```text
+pointermove
+   ↓
+requestAnimationFrame
+   ↓
+anclaje debajo del puntero
+   ↓
+1 validación BFS
+```
+
+Los otros 99 slots son sólo hitboxes baratos.
+
+#### Pathfinding
+
+El BFS ya no consulta todas las paredes para cada arista explorada.
+
+Cada búsqueda construye primero un conjunto de aristas bloqueadas y después usa lookups O(1). Además se eliminó `Array.shift()` del hot path del BFS.
+
+#### Atmósferas
+
+`ThemeAtmosphere` recibe el nivel automático de rendimiento y ajusta la cantidad real de elementos:
+
+- High: escena completa.
+- Balanced: menor densidad.
+- Performance: densidad reducida y menos capas caras.
+
+No existe un botón para que el usuario deje accidentalmente la calidad demasiado alta.
+
+## Reacciones rápidas
+
+Durante partidas online aparece el botón de reacciones:
+
+```text
+😹  😸  🙀
+😿  😾  😼
+```
+
+Las reacciones:
+
+- duran pocos segundos;
+- muestran quién reaccionó;
+- tienen rate limit local;
+- viven en `/rooms/<code>/reactions`;
+- se limpian de forma oportunista;
+- **no escriben en `/game`**.
+
+Esto es importante: mandar un emoji nunca entra en la transacción de una jugada y no puede competir con mover una ficha o colocar una pared.
 
 ## Modos
 
-- **Duelo 1v1:** Norte contra Sur; gana quien alcanza primero el borde opuesto.
-- **Todos al centro (4P):** cuatro jugadores compiten por `(5,5)`.
-- **Equipos 2v2:** Morado contra Naranja; gana el equipo cuyo primer integrante alcanza el centro.
+El tablero continúa siendo siempre **11×11**.
+
+- **Duelo 1v1:** Norte vs Sur.
+- **Todos al centro (4P):** cuatro jugadores hacia `(5,5)`.
+- **Equipos 2v2:** Morado vs Naranja.
+
+Todos comienzan con **10 paredes por jugador**.
 
 ## Reglas principales
 
-- Una acción por turno: mover o colocar una pared.
-- Movimiento siempre disponible tocando una casilla legal.
-- Las paredes se colocan arrastrándolas desde el dock.
-- Salto automático sobre una ficha adyacente.
-- Salto diagonal cuando una pared o el borde bloquean el salto recto.
-- Paredes horizontales/verticales de dos segmentos.
+- Una acción por turno: mover o colocar pared.
+- Movimiento ortogonal.
+- Saltos automáticos.
+- Salto diagonal cuando el salto recto queda bloqueado.
+- Paredes de dos segmentos.
 - Sin cruces ni solapamientos.
-- BFS después de cada pared: ningún jugador activo puede quedarse sin una ruta válida.
-- La meta central jamás puede quedar completamente cerrada.
+- BFS obligatorio después de colocar paredes.
+- Ningún jugador activo puede quedar sin ruta.
+- La meta central no puede sellarse por completo.
 - 30 segundos por turno.
-- Tras 30 segundos aparece aviso de inactividad; si tampoco responde durante la gracia, sólo se salta el turno.
+- Aviso de inactividad + gracia antes de saltar turno.
 
-## Juego local
+## Atmósferas
 
-El menú principal contiene un apartado dedicado a Juego Local. Utiliza el modo y atmósfera seleccionados y funciona sin una sala Firebase.
+Se mantienen:
 
-## Salas privadas
+- Aurora.
+- Bloom.
+- Crystal.
+- Stormlight.
+- Nebula.
+- Garden Pulse.
 
-El online utiliza Firebase Anonymous Authentication + Realtime Database.
-
-1. El host crea la sala.
-2. AnchorGrid genera un código de 4 dígitos.
-3. La invitación usa `?room=4826`.
-4. Los jugadores aparecen en el lobby en tiempo real.
-5. El host inicia cuando se completa la cantidad necesaria.
-6. Si el host se desconecta, la autoridad migra y la sala continúa.
-
-Al terminar una partida online:
-
-- Regresar al lobby.
-- Menú principal.
-- Revancha `X/N`.
-
-## Paleta
+La paleta base continúa:
 
 ```text
 #344D75  #4A7CA1  #637D98  #B6DDFE  #BAF0FA  #F7C5EB  #D069B8
 ```
-
-El fondo base continúa partiendo de `#B6DDFE`.
 
 ## Stack
 
@@ -95,38 +234,45 @@ El fondo base continúa partiendo de `#B6DDFE`.
 - Zustand
 - Firebase Anonymous Auth
 - Firebase Realtime Database
+- Web Workers
 - Vitest
 - GitHub Pages + GitHub Actions
 
-## Desarrollo
+## Desarrollo local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Para otros dispositivos en la misma Wi-Fi:
+Para probar desde otros dispositivos:
 
 ```bash
 npm run dev -- --host
 ```
 
-Antes de publicar:
+## Validación
 
 ```bash
 npm test
 npm run build
 ```
 
-Después:
+## Publicación de esta alpha
 
 ```bash
 git add -A
-git commit -m "fix: AnchorGrid v0.8.2 in-game atmosphere scenes"
+git commit -m "feat: AnchorGrid 1.0 alpha AI and automatic performance pass"
 git push
 ```
 
-El Service Worker usa `anchorgrid-v0.8.2` para evitar que GitHub Pages conserve el CSS anterior.
+El Service Worker utiliza:
+
+```text
+anchorgrid-v1.0.0-alpha.2
+```
+
+Si GitHub Pages muestra una versión antigua después del deploy, realiza una recarga forzada o abre una vez el sitio en una pestaña privada.
 
 <p align="center">
   <img src="./public/brand/signature.webp" alt="Luics415" width="340" />
