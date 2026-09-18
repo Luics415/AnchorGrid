@@ -1,85 +1,57 @@
-# AnchorGrid v1.0.0-alpha.3
+# AnchorGrid v1.0.0-alpha.4
 
-Este parche se instala **encima de v1.0.0-alpha.2**, que es la versión que estás
-probando ahora.
+Parche incremental para instalar encima de `v1.0.0-alpha.3`.
 
-## 1. Puntos de movimiento
+## Cambios
 
-Los puntos legales ahora tienen mucho más contraste:
+### Home
+`Juego Local` ahora es la opción 04 y aparece antes de las opciones online.
 
-- núcleo magenta;
-- borde blanco;
-- anillo azul oscuro;
-- halo cian;
-- saltos y diagonales conservan formas diferenciadas.
+La misma sección contiene:
 
-El objetivo es que se distingan incluso en Crystal, Bloom y los fondos más claros.
+- **Este dispositivo** → partida local tradicional.
+- **Dispositivos cercanos** → sala pública cercana.
 
-## 2. Juego Cercano — primera integración
+Se elimina la tarjeta independiente `08 · JUEGO CERCANO`.
 
-Se agrega el flujo de **Sala Cercana Pública**.
+El orden queda:
 
-No utiliza el flujo de Firebase de las salas privadas:
+1. Identidad
+2. Modo
+3. Atmósfera
+4. Juego Local
+5. Sala Privada
+6. Código
+7. VS IA
 
-- no hay código de 4 dígitos;
-- no hay enlace de invitación;
-- no hay botón Compartir;
-- la sala queda esperando dispositivos cercanos.
+También se acortaron varios textos de ayuda que ya no aportaban información.
 
-### Asientos por dispositivo
+### Puntos de movimiento
+Se elimina el anillo/halo de alpha.3.
 
-Un dispositivo puede controlar más de un asiento. Esto evita obligar a que
-"1 dispositivo = 1 jugador".
+Ahora cada movimiento legal muestra únicamente un punto rosa fuerte:
 
-Ejemplos válidos:
+`#D82AA4`
 
-- 4P con 3 dispositivos:
-  - dispositivo A → Norte + Oeste
-  - dispositivo B → Este
-  - dispositivo C → Sur
+Sin borde, sin aro exterior y sin resplandor.
 
-- 2v2 con 2 dispositivos:
-  - dispositivo A → Morado (Norte + Sur)
-  - dispositivo B → Naranja (Este + Oeste)
+## Instalar
 
-- 1 dispositivo:
-  - puede controlar todos los asientos.
+Copia este ZIP sobre tu proyecto `v1.0.0-alpha.3` y acepta reemplazar.
 
-### Inicio siempre disponible
-
-El host puede pulsar **Iniciar partida** aunque falten asientos.
-
-Antes de empezar, AnchorGrid muestra un aviso indicando qué asientos vacíos se
-controlarán desde el host. Así no se inicia por accidente una configuración distinta
-a la esperada.
-
-## Estado de iPhone/Android
-
-La capa de sala, reparto de asientos y contrato de transporte ya están preparados.
-En navegador funciona como prueba local de la lógica.
-
-El descubrimiento físico real iPhone ↔ Android todavía necesita el bridge nativo
-Nearby Connections. Se mantiene separado del motor, Firebase, Local e IA.
-
-## Archivos
-
-El ZIP contiene sólo los archivos nuevos/modificados de alpha.3.
-
-## Verificación
-
-Después de copiar encima del proyecto:
+Después:
 
 ```powershell
 npm test
 npm run build
 ```
 
-Si todo termina correctamente:
+Si pasa todo:
 
 ```powershell
 git add -A
-git commit -m "feat: AnchorGrid alpha 3 nearby public lobby and movement visibility"
+git commit -m "refactor: merge local and nearby play in AnchorGrid alpha 4"
 git push
 ```
 
-El Service Worker cambia a `anchorgrid-v1.0.0-alpha.3`.
+Service Worker: `anchorgrid-v1.0.0-alpha.4`

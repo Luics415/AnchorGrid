@@ -62,10 +62,6 @@ export function HomeScreen({
 
   useAppTheme(themeChoice);
 
-  const selectedThemeName = themeChoice === 'random'
-    ? 'Atmósfera aleatoria'
-    : THEMES.find((theme) => theme.id === themeChoice)?.name ?? 'Atmósfera';
-
   const selectedAi = AI_DIFFICULTIES.find(
     (difficulty) => difficulty.id === aiDifficulty
   ) ?? AI_DIFFICULTIES[1];
@@ -95,14 +91,13 @@ export function HomeScreen({
           <p className="eyebrow">PRIVATE STRATEGY ARENA</p>
           <h1>AnchorGrid</h1>
           <p className="hero-copy">
-            Cruza, bloquea y anticipa. Juega con amigos, comparte una pantalla o reta a una CPU que realmente piensa.
+            Cruza, bloquea y anticipa. Local, online o contra la IA.
           </p>
 
           <div className="hero-pills">
             <span>11×11</span>
             <span>30 s</span>
             <span>1v1 · 4P · 2v2</span>
-            <span>VS IA</span>
             {firebaseConfigured && (
               <NetworkStatus connected={firebaseConnected} compact />
             )}
@@ -155,8 +150,8 @@ export function HomeScreen({
                     {id === 'duel'
                       ? 'Llega al lado opuesto.'
                       : id === 'team2v2'
-                        ? 'Equipo Morado vs Equipo Naranja.'
-                        : 'Primero en alcanzar el centro.'}
+                        ? 'Morado vs Naranja.'
+                        : 'Primero al centro.'}
                   </small>
                 </button>
               );
@@ -165,14 +160,11 @@ export function HomeScreen({
         </div>
 
         <div className="glass-panel setup-card wide-card theme-picker-card">
-          <div className="section-heading atmosphere-heading">
+          <div className="section-heading">
             <div>
               <p className="eyebrow">03 · ATMÓSFERA</p>
-              <h2>El tablero cambia de carácter</h2>
+              <h2>Elige el ambiente</h2>
             </div>
-            <p className="atmosphere-hint">
-              Cada tema tiene movimiento propio durante toda la partida.
-            </p>
           </div>
 
           <div className="theme-strip rich-themes">
@@ -185,7 +177,7 @@ export function HomeScreen({
               </span>
               <span>
                 <strong>Aleatorio</strong>
-                <small>Una atmósfera distinta en cada partida.</small>
+                <small>Una distinta cada partida.</small>
               </span>
             </button>
 
@@ -214,13 +206,55 @@ export function HomeScreen({
           </div>
         </div>
 
+        <section className="glass-panel setup-card wide-card local-hub-card">
+          <div className="section-heading local-hub-heading">
+            <div>
+              <p className="eyebrow">04 · JUEGO LOCAL</p>
+              <h2>Juega aquí o con dispositivos cercanos</h2>
+            </div>
+          </div>
+
+          <div className="local-hub-actions">
+            <article className="local-hub-option">
+              <div>
+                <span className="local-hub-icon" aria-hidden="true">▦</span>
+                <strong>Este dispositivo</strong>
+                <small>Todos juegan en la misma pantalla.</small>
+              </div>
+              <button
+                className="primary-button"
+                disabled={nickname.trim().length < 2}
+                onClick={onStartLocal}
+              >
+                Jugar aquí
+              </button>
+            </article>
+
+            <article className="local-hub-option nearby">
+              <div>
+                <span className="local-hub-icon" aria-hidden="true">◌</span>
+                <strong>Dispositivos cercanos</strong>
+                <small>
+                  Sala pública · iPhone / Android
+                  {nearbyNativeAvailable ? ' · lista' : ''}
+                </small>
+              </div>
+              <button
+                className="secondary-button"
+                disabled={nickname.trim().length < 2}
+                onClick={onCreateNearby}
+              >
+                Crear sala cercana
+              </button>
+            </article>
+          </div>
+        </section>
+
         <div className="glass-panel setup-card action-card online-card">
           <div>
-            <p className="eyebrow">04 · SALA PRIVADA</p>
+            <p className="eyebrow">05 · SALA PRIVADA</p>
             <h2>Crear partida</h2>
-            <p className="muted">
-              Código de 4 dígitos, enlace directo y migración automática de host.
-            </p>
+            <p className="muted">Código de 4 dígitos y enlace directo.</p>
           </div>
 
           <button
@@ -243,19 +277,15 @@ export function HomeScreen({
           </button>
 
           {firebaseConfigured && firebaseConnected && (
-            <p className="online-ready">
-              ● Online listo · sincronización directa
-            </p>
+            <p className="online-ready">● Online listo</p>
           )}
         </div>
 
         <div className="glass-panel setup-card action-card online-card">
           <div>
-            <p className="eyebrow">05 · CÓDIGO</p>
+            <p className="eyebrow">06 · CÓDIGO</p>
             <h2>Unirse</h2>
-            <p className="muted">
-              Sin lista pública: entra quien tenga el código o el enlace.
-            </p>
+            <p className="muted">Escribe los 4 dígitos de la sala.</p>
           </div>
 
           <div className="join-row">
@@ -285,60 +315,22 @@ export function HomeScreen({
           </div>
 
           {resuming && (
-            <p className="mini-status">
-              Buscando tu asiento reservado…
-            </p>
+            <p className="mini-status">Buscando tu asiento…</p>
           )}
         </div>
-
-        <section className="glass-panel setup-card wide-card local-play-card">
-          <div className="local-play-copy">
-            <p className="eyebrow">06 · JUEGO LOCAL</p>
-            <h2>Una pantalla, todos los jugadores</h2>
-            <p className="muted">
-              Juega AnchorGrid directamente en este dispositivo. Sin sala,
-              sin código y sin depender de Internet.
-            </p>
-
-            <div className="local-feature-row" aria-label="Características del juego local">
-              <span>Sin Internet</span>
-              <span>11×11</span>
-              <span>10 paredes</span>
-              <span>1v1 · 4P · 2v2</span>
-            </div>
-          </div>
-
-          <div className="local-play-action">
-            <div className="local-selection-summary">
-              <small>Configuración actual</small>
-              <strong>
-                {MODE_CONFIG[mode].shortLabel} · {selectedThemeName}
-              </strong>
-            </div>
-
-            <button
-              className="primary-button local-start-button"
-              disabled={nickname.trim().length < 2}
-              onClick={onStartLocal}
-            >
-              Iniciar partida local
-            </button>
-          </div>
-        </section>
 
         <section className="glass-panel setup-card wide-card ai-play-card">
           <div className="ai-play-heading">
             <div>
               <p className="eyebrow">07 · VS IA</p>
-              <h2>Una CPU que compite de verdad</h2>
-              <p className="muted">
-                La IA usa las mismas reglas que tú. Fácil deja espacios; Maestro
-                calcula rutas, paredes y respuestas sin volverse invencible.
-              </p>
+              <h2>Elige dificultad</h2>
             </div>
 
-            <span className="auto-performance-badge" title="AnchorGrid ajusta automáticamente efectos y carga según los FPS reales.">
-              Rendimiento AUTO
+            <span
+              className="auto-performance-badge"
+              title="AnchorGrid ajusta automáticamente los efectos según el rendimiento."
+            >
+              AUTO
             </span>
           </div>
 
@@ -356,14 +348,13 @@ export function HomeScreen({
                   <strong>{difficulty.label}</strong>
                   <small>{difficulty.shortDescription}</small>
                 </span>
-                <p>{difficulty.detail}</p>
               </button>
             ))}
           </div>
 
           <div className="ai-start-row">
             <div>
-              <small>Dificultad seleccionada</small>
+              <small>Seleccionado</small>
               <strong>
                 {selectedAi.label} · {MODE_CONFIG[mode].shortLabel}
               </strong>
@@ -378,54 +369,6 @@ export function HomeScreen({
             </button>
           </div>
         </section>
-
-        <section className="glass-panel setup-card wide-card nearby-play-card">
-          <div className="nearby-play-heading">
-            <div>
-              <p className="eyebrow">08 · JUEGO CERCANO</p>
-              <h2>Sala pública alrededor de ti</h2>
-              <p className="muted">
-                Sin código ni invitación. Un iPhone o Android crea la sala y los
-                dispositivos cercanos pueden encontrarla. Un mismo dispositivo
-                puede controlar uno o varios jugadores.
-              </p>
-            </div>
-
-            <span className={`nearby-capability-badge ${nearbyNativeAvailable ? 'ready' : ''}`}>
-              {nearbyNativeAvailable
-                ? 'iPhone / Android listo'
-                : 'Preparando app móvil'}
-            </span>
-          </div>
-
-          <div className="nearby-play-features">
-            <span>Sin código</span>
-            <span>Sin enlace</span>
-            <span>1–4 dispositivos</span>
-            <span>Asientos compartidos</span>
-          </div>
-
-          <div className="nearby-play-actions">
-            <div>
-              <small>Configuración actual</small>
-              <strong>
-                {MODE_CONFIG[mode].shortLabel} · {selectedThemeName}
-              </strong>
-              <p>
-                El host siempre puede iniciar. Los asientos que falten se
-                completan en su dispositivo.
-              </p>
-            </div>
-
-            <button
-              className="primary-button nearby-create-button"
-              disabled={nickname.trim().length < 2}
-              onClick={onCreateNearby}
-            >
-              Crear sala pública
-            </button>
-          </div>
-        </section>
       </section>
 
       {error && (
@@ -436,8 +379,7 @@ export function HomeScreen({
 
       {!firebaseConfigured && (
         <div className="notice online-service-notice">
-          El servicio de salas online aún no está conectado en este despliegue.
-          La configuración es del administrador y nunca debe pedirse a los jugadores.
+          Salas online no disponibles en este despliegue.
         </div>
       )}
 

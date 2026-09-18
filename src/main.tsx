@@ -6,6 +6,7 @@ import './styles/v0.8.1-polish.css';
 import './styles/v0.8.2-game-atmospheres.css';
 import './styles/v1.0-alpha.css';
 import './styles/v1.0-alpha.3-nearby.css';
+import './styles/v1.0-alpha.4-home.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

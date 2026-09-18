@@ -5,6 +5,26 @@
 # AnchorGrid
 
 
+
+## v1.0.0-alpha.4 — menú local unificado
+
+- **Juego Local** pasa a la posición **04**, antes de Sala Privada, Código y VS IA.
+- Juego Local y Juego Cercano se presentan ahora dentro de un mismo bloque:
+  - **Este dispositivo**
+  - **Dispositivos cercanos**
+- Se elimina el bloque separado `08 · JUEGO CERCANO`.
+- Se reduce texto redundante en Home y VS IA.
+- Los indicadores de movimientos legales ahora son únicamente un **punto rosa fuerte**
+  sin anillos, bordes ni halos.
+- Numeración actual:
+  - 01 Identidad
+  - 02 Modo
+  - 03 Atmósfera
+  - 04 Juego Local
+  - 05 Sala Privada
+  - 06 Código
+  - 07 VS IA
+
 ## v1.0.0-alpha.3 — movimiento visible + sala cercana pública
 
 - Los indicadores de movimiento ahora usan un núcleo magenta/azul con borde blanco,
