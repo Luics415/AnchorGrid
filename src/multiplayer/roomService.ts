@@ -104,7 +104,9 @@ export async function createRoom(input: {
       uid: user.uid,
       name: input.name,
       seat: firstSeat,
-      teamId: input.mode === 'team2v2' ? TEAM_BY_SEAT[firstSeat] : undefined,
+      ...(input.mode === 'team2v2'
+        ? { teamId: TEAM_BY_SEAT[firstSeat] }
+        : {}),
       connected: true,
       joinedAt: now,
       lastSeenAt: now
@@ -178,7 +180,9 @@ export async function joinRoom(codeInput: string, name: string): Promise<RoomRec
       uid: user.uid,
       name,
       seat,
-      teamId: current.meta.mode === 'team2v2' ? TEAM_BY_SEAT[seat] : undefined,
+      ...(current.meta.mode === 'team2v2'
+        ? { teamId: TEAM_BY_SEAT[seat] }
+        : {}),
       connected: true,
       joinedAt: now,
       lastSeenAt: now

@@ -33,7 +33,9 @@ export function createGameState(input: {
       id: profile.id,
       name: profile.name,
       seat,
-      teamId: input.mode === 'team2v2' ? TEAM_BY_SEAT[seat] : undefined,
+      ...(input.mode === 'team2v2'
+        ? { teamId: TEAM_BY_SEAT[seat] }
+        : {}),
       position: { ...START_POSITIONS[seat] },
       wallsRemaining: config.wallsPerPlayer,
       connected: true,
