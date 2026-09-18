@@ -15,7 +15,10 @@ import {
   createGameState,
   type GameAction,
   type GameMode,
-  type ThemeId
+  type GameState,
+  type PlayerState,
+  type ThemeId,
+  type Wall
 } from '../game';
 import { ensureAnonymousUser, getFirebase } from './firebase';
 import type { RoomPlayer, RoomRecord } from './types';
@@ -27,23 +30,74 @@ function roomRef(code: string) {
   return ref(getFirebase().database, `rooms/${code}`);
 }
 
-function normalizeRoom(code: string, value: Omit<RoomRecord, 'code'> | null): RoomRecord | null {
-  if (!value) return null;
-  const room: RoomRecord = { code, ...value, rematchVotes: value.rematchVotes ?? {} };
-  if (room.game) {
-    room.game = {
-      ...room.game,
-      turn: {
-        ...room.game.turn,
-        phase: room.game.turn.phase ?? 'active'
-      },
-      players: room.game.players.map((player) => ({
-        ...player,
-        connected: room.players?.[player.id]?.connected ?? false,
-        inactivityWarnings: player.inactivityWarnings ?? 0
-      }))
-    };
+type FirebaseList<T> =
+  | T[]
+  | Record<string, T>
+  | null
+  | undefined;
+
+type FirebaseGameState =
+  Omit<GameState, 'players' | 'walls' | 'turnOrder'> & {
+    players?: FirebaseList<PlayerState>;
+    walls?: FirebaseList<Wall>;
+    turnOrder?: FirebaseList<string>;
+  };
+
+function firebaseListToArray<T>(value: FirebaseList<T>): T[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is T => item != null);
   }
+
+  if (!value) return [];
+
+  return Object.keys(value)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => value[key])
+    .filter((item): item is T => item != null);
+}
+
+function hydrateGameState(
+  raw: FirebaseGameState | null | undefined,
+  roomPlayers: Record<string, RoomPlayer>
+): GameState | null {
+  if (!raw) return null;
+
+  const players = firebaseListToArray(raw.players).map((player) => ({
+    ...player,
+    connected: roomPlayers?.[player.id]?.connected ?? false,
+    inactivityWarnings: player.inactivityWarnings ?? 0
+  }));
+
+  return {
+    ...raw,
+    players,
+    walls: firebaseListToArray(raw.walls),
+    turnOrder: firebaseListToArray(raw.turnOrder),
+    turn: {
+      ...raw.turn,
+      phase: raw.turn?.phase ?? 'active'
+    }
+  } as GameState;
+}
+
+function normalizeRoom(
+  code: string,
+  value: Omit<RoomRecord, 'code'> | null
+): RoomRecord | null {
+  if (!value) return null;
+
+  const room: RoomRecord = {
+    code,
+    ...value,
+    game: null,
+    rematchVotes: value.rematchVotes ?? {}
+  };
+
+  room.game = hydrateGameState(
+    value.game as unknown as FirebaseGameState | null,
+    room.players ?? {}
+  );
+
   return room;
 }
 
@@ -439,12 +493,41 @@ export async function submitAction(
   }
 
   const expectedRevision = room.game.revision;
-  await runTransaction(ref(getFirebase().database, `rooms/${code}/game`), (game) => {
-    if (!game || game.revision !== expectedRevision) return game;
-    if (action.type !== 'TIMEOUT' && game.turn?.currentPlayerId !== user.uid) return game;
-    if (action.type === 'TIMEOUT' && game.turn?.currentPlayerId !== action.playerId) return game;
-    return applyGameAction(game, action, serverNow);
-  });
+  await runTransaction(
+    ref(getFirebase().database, `rooms/${code}/game`),
+    (rawGame) => {
+      const game = hydrateGameState(
+        rawGame as FirebaseGameState | null,
+        room.players
+      );
+
+      if (!game) return rawGame;
+
+      if (game.revision !== expectedRevision) {
+        return rawGame;
+      }
+
+      if (
+        action.type !== 'TIMEOUT' &&
+        game.turn.currentPlayerId !== user.uid
+      ) {
+        return rawGame;
+      }
+
+      if (
+        action.type === 'TIMEOUT' &&
+        game.turn.currentPlayerId !== action.playerId
+      ) {
+        return rawGame;
+      }
+
+      return applyGameAction(
+        game,
+        action,
+        serverNow
+      );
+    }
+  );
 }
 
 export async function attemptHostMigration(room: RoomRecord, serverNow: number) {

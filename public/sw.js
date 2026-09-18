@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anchorgrid-v0.7.1';
+const CACHE_NAME = 'anchorgrid-v0.8.0';
 const APP_SHELL = [
   './',
   './manifest.webmanifest',
