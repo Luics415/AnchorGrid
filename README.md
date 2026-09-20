@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/brand/banner.webp" alt="AnchorGrid" width="100%" />
+  <img width="1200" height="630" alt="og-anchorgrid" src="https://github.com/user-attachments/assets/384de64c-b853-43f6-90f9-a73f2d06c139" />
 </p>
 
 # AnchorGrid
