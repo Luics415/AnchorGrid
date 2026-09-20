@@ -320,6 +320,17 @@ El Service Worker utiliza:
 anchorgrid-v1.0.0-alpha.2
 ```
 
+## Capturas de pantalla
+
+<img width="1123" height="884" alt="image" src="https://github.com/user-attachments/assets/c8294ad0-de53-41cd-8a3f-211d55d4900e" />
+<img width="864" height="754" alt="image" src="https://github.com/user-attachments/assets/7921adec-fc01-484c-a23d-15683146db57" />
+<img width="904" height="902" alt="image" src="https://github.com/user-attachments/assets/2f09c01a-0fde-44ee-98c3-2448b747066c" />
+<img width="1026" height="804" alt="image" src="https://github.com/user-attachments/assets/5025782c-5fc8-4e8f-9a3e-abd4b8a6a7bd" />
+
+
+
+
+
 Si GitHub Pages muestra una versión antigua después del deploy, realiza una recarga forzada o abre una vez el sitio en una pestaña privada.
 
 <p align="center">
