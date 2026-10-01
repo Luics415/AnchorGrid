@@ -69,7 +69,8 @@ la instalación PWA.
 
 AnchorGrid es un juego de estrategia por turnos, mobile-first y multiplataforma, diseñado para jugar **online con amigos**, **localmente** o **contra IA**.
 
-**Sitio:** `https://luics415.github.io/AnchorGrid/`
+**Sitio en Vercel (Recomendado):** `https://anchorgrid.vercel.app/`  
+**Espejo en GitHub Pages:** `https://luics415.github.io/AnchorGrid/`
 
 ## Camino a 1.0
 
