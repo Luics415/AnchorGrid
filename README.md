@@ -336,3 +336,10 @@ Si GitHub Pages muestra una versión antigua después del deploy, realiza una re
 <p align="center">
   <img src="./public/brand/signature.webp" alt="Luics415" width="340" />
 </p>
+
+---
+
+## 📄 Licencia
+
+Este proyecto está distribuido bajo la Licencia [MIT](LICENSE).
+
